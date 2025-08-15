@@ -1,4 +1,3 @@
-/*
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 import MapComponent from '../components/MapComponent';
@@ -23,48 +22,8 @@ export default function HomePage() {
   return (
     <div>
       <p>환영합니다, {session.user.phone}!</p>
+      {/* 로그아웃 버튼은 App.jsx 헤더에 이미 있습니다. */}
       <MapComponent />
     </div>
   );
 }
-*/
-
-// src/pages/HomePage.jsx
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
-import './HomePage.css';
-
-const HomePage = () => {
-  const navigate = useNavigate();
-
-  const handleSignUp = () => {
-    navigate('/signup');
-  };
-
-  const handleLogin = () => {
-    navigate('/login');
-  };
-
-  return (
-    <div className="splash-container">
-      <div className="logo-section">
-        <div className="logo-container">
-          <img src="/greenplum.gif" alt="로고" className="logo-image" />
-        </div>
-        <h1 className="app-title">프로젝트명</h1>
-        <p className="app-subtitle">프로젝트 부제</p>
-      </div>
-      
-      <div className="button-section">
-        <button className="btn-outline" onClick={handleSignUp}>
-          회원가입
-        </button>
-        <button className="btn-primary" onClick={handleLogin}>
-          로그인
-        </button>
-      </div>
-    </div>
-  );
-};
-
-export default HomePage;
