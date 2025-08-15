@@ -2,41 +2,55 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 import { Navigate } from 'react-router-dom';
 
-// 1. props로 session을 받도록 수정합니다.
 export default function ProtectedRoute({ children, adminOnly = false, session }) {
-  const [userRole, setUserRole] = useState(null);
+  const [isValidSession, setIsValidSession] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // 2. useEffect가 session prop이 바뀔 때마다 다시 실행되도록 수정합니다.
   useEffect(() => {
-    // 세션이 없으면 로딩을 멈추고 아무것도 안합니다. (아래 Navigate가 처리)
     if (!session) {
       setLoading(false);
       return;
     }
 
-    // 세션이 있으면, 해당 사용자의 역할을 조회합니다.
-    const fetchRole = async () => {
+    const validateSession = async () => {
+      // DB에서 사용자의 최신 증표와 역할 정보를 가져옴
       const { data: profile } = await supabase
         .from('users')
-        .select('role')
+        .select('role, latest_session_id')
         .eq('id', session.user.id)
         .single();
-      setUserRole(profile?.role);
+      
+      // 브라우저에 저장된 내 증표
+      const localSessionId = localStorage.getItem('session_id');
+
+      // 내 증표와 DB의 최신 증표가 일치하는지 확인
+      if (profile && profile.latest_session_id === localSessionId) {
+        // 관리자 페이지일 경우, 역할도 확인
+        if (adminOnly && profile.role !== 'ADMIN') {
+          setIsValidSession(false);
+        } else {
+          setIsValidSession(true);
+        }
+      } else {
+        // 증표가 일치하지 않으면 (다른 곳에서 로그인함) 유효하지 않은 세션으로 처리
+        setIsValidSession(false);
+      }
       setLoading(false);
     };
 
-    fetchRole();
-  }, [session]); // session이 변경될 때마다 이 로직을 다시 실행합니다.
+    validateSession();
+  }, [session, adminOnly]);
 
   if (loading) {
-    return <p>사용자 확인 중...</p>;
+    return <p>세션 확인 중...</p>;
   }
 
-  // 3. 전달받은 session을 기준으로 즉시 판단합니다.
-  if (!session || (adminOnly && userRole !== 'ADMIN')) {
+  // 세션이 유효하면 페이지를 보여주고, 아니면 로그인 페이지로 보냄
+  if (isValidSession) {
+    return children;
+  } else {
+    // 유효하지 않은 경우, 확실하게 로그아웃 처리 후 로그인 페이지로 이동
+    supabase.auth.signOut();
     return <Navigate to="/login" replace />;
   }
-
-  return children;
 }

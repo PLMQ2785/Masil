@@ -23,6 +23,31 @@ export default function LoginForm() {
     if (error) {
       alert(error.error_description || error.message);
     } else if (user) {
+
+      // --- 동시 로그인 방지 로직 추가  ---
+      try {
+        // 1. 새로운 세션 증표(UUID) 생성
+        const newSessionId = crypto.randomUUID();
+
+        // 2. FastAPI에 증표 업데이트 요청
+        await fetch('http://localhost:8000/api/users/update-session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user_id: user.id, session_id: newSessionId }),
+        });
+
+        // 3. 브라우저 로컬 저장소에 증표 저장
+        localStorage.setItem('session_id', newSessionId);
+
+      } catch (e) {
+        alert("세션 처리 중 오류가 발생했습니다. 다시 로그인해주세요.");
+        await supabase.auth.signOut(); // 오류 발생 시 안전하게 로그아웃
+        setLoading(false);
+        return;
+      }
+      // --- 로직 추가 끝 ---
+
+
       const { data: profile, error: profileError } = await supabase
         .from('users')
         .select('role')
