@@ -1,0 +1,7 @@
+# Core deps for enrich_factpack_llm.py
+openai>=1.0.0,<2.0.0
+python-dotenv>=1.0.0,<2.0.0
+
+# (Optional) API 서버로 확장할 때
+# fastapi>=0.111
+# uvicorn[standard]>=0.30
