@@ -10,7 +10,7 @@ from uuid import UUID
 import numpy as np
 import requests
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from openai import OpenAI
 from pydantic import BaseModel, Field
@@ -31,7 +31,14 @@ app = FastAPI()
 # CORS 미들웨어 설정
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://19.168.68.92:5173"],
+    allow_origins=[
+        "http://localhost:5173",
+        "https://localhost:5173", # https 로컬호스트
+        "http://192.168.68.67:5173", # http IP 주소
+        "https://192.168.68.67:5173", # 👈 이 줄을 추가하세요.
+        "https://jobis.ngrok.app",
+        "https://jobisbe.ngrok.app"
+        ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -61,6 +68,13 @@ class Review(BaseModel):
 class RecommendRequest(BaseModel):
     user_id: UUID
     query: str
+
+class ApplyRequest(BaseModel):
+    user_id: UUID
+    
+class SessionUpdateRequest(BaseModel):
+    user_id: UUID
+    session_id: UUID
 
 # --- 3. 유틸리티 함수 (AI-1, AI-2 스크립트에서 가져옴) ---
 WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
@@ -93,26 +107,73 @@ def create_job(job: Job):
         raise HTTPException(status_code=500, detail=f"데이터 생성 실패: {str(e)}")
 
 @app.get("/api/jobs")
-def get_jobs(
-    view: Optional[str] = 'admin',
-    latitude: Optional[float] = None,
-    longitude: Optional[float] = None,
-    radius_km: float = 5.0,
-    limit: int = 100
-):
+def get_jobs(user_id: Optional[UUID] = None, limit: int = 100):
+    """
+    user_id 쿼리 파라미터가 있으면 개인화된 추천 목록을 반환하고,
+    없으면 관리자 페이지를 위한 전체 일자리 목록을 반환합니다.
+    """
     try:
-        if latitude is not None and longitude is not None:
-            response = supabase.rpc('nearby_jobs', {
-                'user_lat': latitude, 'user_lon': longitude,
-                'radius_meters': radius_km * 1000, 'result_limit': limit
+        # --- 1. 개인화 추천 로직 (user_id가 있을 경우) ---
+        if user_id:
+            # 1a. 사용자 프로필 조회 (기준 위치, 선호 직무 등)
+            user_response = supabase.from_("users").select(
+                "home_latitude, home_longitude, preferred_jobs"
+            ).eq("id", str(user_id)).single().execute()
+            
+            user_profile = user_response.data
+            if not user_profile or user_profile.get("home_latitude") is None:
+                raise HTTPException(status_code=404, detail="사용자 프로필 또는 기준 위치 정보가 없습니다.")
+
+            user_lat = user_profile["home_latitude"]
+            user_lon = user_profile["home_longitude"]
+            preferred_jobs = user_profile.get("preferred_jobs", [])
+
+            # 1b. 사용자의 기준 위치 주변 일자리 검색 (1차 필터링)
+            nearby_jobs_response = supabase.rpc('nearby_jobs_full', {
+                'user_lat': user_lat,
+                'user_lon': user_lon,
+                'radius_meters': 10000, # 10km 반경
+                'result_limit': limit
             }).execute()
-            return response.data
+            
+            nearby_jobs_data = nearby_jobs_response.data
+            if not nearby_jobs_data:
+                return []
+
+            # 1c. 재정렬 (Reranking): 선호 직무와의 관련성 점수 계산
+            recommended_jobs = []
+            for job in nearby_jobs_data:
+                title = job.get("title", "")
+                
+                # 간단한 점수 계산: 선호 직무 키워드가 제목에 포함되면 1점씩 추가
+                preference_score = 0
+                if preferred_jobs:
+                    for pref in preferred_jobs:
+                        if pref in title:
+                            preference_score += 1
+                
+                # 거리 점수 (가까울수록 높음)
+                distance = haversine_km(user_lat, user_lon, job['job_latitude'], job['job_longitude'])
+                distance_score = 1 - (distance / 10) if distance <= 10 else 0
+
+                # 최종 점수 (선호도 50%, 거리 50%)
+                job['match_score'] = round((preference_score * 0.5) + (distance_score * 0.5), 4)
+                recommended_jobs.append(job)
+
+            # 최종 점수가 높은 순으로 정렬
+            recommended_jobs.sort(key=lambda x: x['match_score'], reverse=True)
+
+            return recommended_jobs
+
+        # --- 2. 전체 조회 로직 (user_id가 없을 경우) ---
         else:
-            select_query = "job_id, title, job_latitude, job_longitude" if view == 'map' else "*"
-            response = supabase.from_("jobs").select(select_query).order("created_at", desc=True).limit(limit).execute()
+            response = supabase.from_("jobs").select("*").order("created_at", desc=True).limit(limit).execute()
             return response.data
+
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"데이터 조회 실패: {str(e)}")
+        error_traceback = traceback.format_exc()
+        raise HTTPException(status_code=500, detail=error_traceback)
+
 
 @app.get("/api/jobs/{job_id}")
 def get_job_by_id(job_id: int):
@@ -145,6 +206,29 @@ def delete_job(job_id: int):
         return {"message": f"ID {job_id}가 성공적으로 삭제되었습니다."}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"데이터 삭제 실패: {str(e)}")
+
+# [지원하기]
+@app.post("/api/jobs/{job_id}/apply")
+def apply_for_job(job_id: int, request: ApplyRequest):
+    try:
+        # 1. 지원 마감 여부 확인 (기존과 동일)
+        job_response = supabase.from_("jobs").select("participants, current_participants").eq("job_id", job_id).single().execute()
+        job = job_response.data
+        if not job:
+            raise HTTPException(status_code=404, detail="해당 일자리를 찾을 수 없습니다.")
+        if job.get('participants') is not None and job.get('current_participants', 0) >= job.get('participants'):
+            raise HTTPException(status_code=400, detail="모집이 마감되었습니다.")
+
+        # 2. 사용자의 지원 기록 생성 (기존과 동일)
+        review_data = {"job_id": job_id, "user_id": str(request.user_id), "status": "applied"}
+        supabase.from_("user_job_reviews").upsert(review_data).execute()
+        
+        # 3. DB 함수를 호출하여 지원자 수를 안전하게 1 증가
+        supabase.rpc('increment_applicants', {'job_id_to_update': job_id}).execute()
+
+        return {"message": "지원이 성공적으로 완료되었습니다."}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"지원 처리 중 오류 발생: {str(e)}")
 
 
 # [Reviews CRUD]
@@ -295,6 +379,86 @@ def recommend_jobs(request: RecommendRequest):
         # --- 6단계: 최종 결과 반환 ---
         return {"answer": answer, "jobs": top_5_jobs}
         
+    except Exception as e:
+        error_traceback = traceback.format_exc()
+        raise HTTPException(status_code=500, detail=error_traceback)
+
+# --- RAG 파이프라인 ---
+def run_rag_pipeline(user_id: UUID, query: str) -> dict:
+    # 1. 사용자 컨텍스트 조회
+    user_response = supabase.from_("users").select("*").eq("id", str(user_id)).single().execute()
+    user_ctx = user_response.data
+    if not user_ctx:
+        raise HTTPException(status_code=404, detail="사용자 정보를 찾을 수 없습니다.")
+
+    # 2. 쿼리 임베딩
+    embedding_response = client.embeddings.create(input=[query], model="text-embedding-3-small")
+    query_embedding = embedding_response.data[0].embedding
+
+    # 3. 후보군 검색 (Retrieval)
+    candidates_response = supabase.rpc('match_jobs', {'query_embedding': query_embedding, 'match_threshold': 0.3, 'match_count': 50}).execute()
+    retrieved_jobs = candidates_response.data
+    if not retrieved_jobs:
+        return {"answer": "죄송하지만, 요청과 유사한 소일거리를 찾지 못했습니다.", "jobs": []}
+
+    retrieved_ids = [job['job_id'] for job in retrieved_jobs]
+    similarity_map = {job['job_id']: job['similarity'] for job in retrieved_jobs}
+    
+    full_candidates_response = supabase.from_("jobs").select("*").in_("job_id", retrieved_ids).execute()
+    candidates = full_candidates_response.data
+
+    # 4. 필터링 및 재정렬 (Filtering & Reranking)
+    reranked_jobs = []
+    for job in candidates:
+        distance_km = haversine_km(user_ctx.get('home_latitude'), user_ctx.get('home_longitude'), job.get('job_latitude'), job.get('job_longitude'))
+        distance_score = 1 - (distance_km / 20) if distance_km <= 20 else 0
+        match_score = similarity_map.get(job['job_id'], 0) * 0.7 + distance_score * 0.3
+        job['match_score'] = round(match_score, 4)
+        job['distance_km'] = round(distance_km, 2)
+        reranked_jobs.append(job)
+        
+    reranked_jobs.sort(key=lambda x: x.get('match_score', 0), reverse=True)
+    top_5_jobs = reranked_jobs[:5]
+    if not top_5_jobs:
+        return {"answer": "조건에 맞는 소일거리를 찾지 못했습니다.", "jobs": []}
+
+    # 5. 최종 답변 생성 (Generation)
+    context = "\n\n".join([f"- 제목: {job['title']}\n- 내용: {job['description']}" for job in top_5_jobs])
+    prompt = f"당신은 시니어에게 일자리를 추천하는 AI 비서입니다. 아래 [정보]를 바탕으로, 사용자의 [질문] '{query}'에 대해 자연스러운 한 문장으로 답변해주세요."
+    chat_response = client.chat.completions.create(model="gpt-4o-mini", messages=[{"role": "user", "content": prompt}])
+    answer = chat_response.choices[0].message.content
+
+    return {"answer": answer, "jobs": top_5_jobs}
+
+
+# [AI 추천]
+@app.post("/api/recommend")
+def recommend_jobs_text(request: RecommendRequest):
+    """텍스트 쿼리를 받아 RAG 파이프라인을 실행합니다."""
+    try:
+        return run_rag_pipeline(request.user_id, request.query)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/recommend-voice")
+def recommend_jobs_voice(user_id: UUID = Form(...), audio_file: UploadFile = File(...)):
+    """오디오 파일을 받아 텍스트로 변환 후, RAG 파이프라인을 실행합니다."""
+    try:
+        # transcript = client.audio.transcriptions.create(model="whisper-1", file=audio_file.file, response_format="text")
+         # 👇 --- 이 부분을 수정합니다 --- 👇
+        # Whisper API가 이해할 수 있는 (파일명, 파일내용) 튜플 형태로 전달
+        transcript_response = client.audio.transcriptions.create(
+            model="whisper-1",
+            file=(audio_file.filename, audio_file.file.read()),
+            response_format="text"
+        )
+        # 👆 --- 수정 끝 --- 👆
+
+        # transcript_response가 이제 응답 객체이므로, 실제 텍스트를 가져와야 합니다.
+        # (라이브러리 버전에 따라 다를 수 있으나, 일반적으로 아래와 같습니다.)
+        query_text = transcript_response.strip()
+        print(f"🎤 Whisper STT 결과: \"{query_text}\"")
+        return run_rag_pipeline(user_id, query_text)
     except Exception as e:
         error_traceback = traceback.format_exc()
         raise HTTPException(status_code=500, detail=error_traceback)
