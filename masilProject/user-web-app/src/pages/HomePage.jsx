@@ -94,27 +94,10 @@ const HomePage = () => {
   return (
     <div className="homepage-container page-container">
       <div className="logo-section">
-        <div className="logo-circle">
-          <img 
-            src="/assets/logo/jobits-logo.png" 
-            alt="JOBITS Logo" 
-            className="logo-image"
-            onError={(e) => {
-              // 이미지 로드 실패 시 텍스트로 대체
-              e.target.style.display = 'none';
-              e.target.nextSibling.style.display = 'block';
-            }}
-          />
-          <div className="logo-text-fallback" style={{display: 'none'}}>
-            JOBITS
-          </div>
-        </div>
+        <img src="/Job있으.png" alt="로고" className="logo-image" />
       </div>
       
-      <div className="title-section">
-        <h1 className="project-title">잡있으?</h1> 
-        <p className="project-subtitle">JOB ITS</p>
-      </div>
+      
       
       <div className="button-section">
         <button 

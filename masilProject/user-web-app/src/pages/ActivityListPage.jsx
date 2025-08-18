@@ -2,14 +2,12 @@
 import React, { useState, useEffect } from 'react';
 import MapComponent from '../components/MapComponent';
 import BottomNavBar from '../components/BottomNavBar';
-import ActivityModal from '../components/ActivityModal';
 import VoiceModal from '../components/VoiceModal';
 import './ActivityListPage.css';
 
 export default function ActivityListPage() {
   const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedActivity, setSelectedActivity] = useState(null);
   const [showVoiceModal, setShowVoiceModal] = useState(false);
 
   useEffect(() => {
@@ -60,12 +58,15 @@ export default function ActivityListPage() {
     }, 1000);
   }, []);
 
+  // 마이크 버튼 클릭 핸들러
   const handleMicClick = () => {
+    console.log('🎤 마이크 버튼 클릭됨');
     setShowVoiceModal(true);
   };
 
-  const closeModals = () => {
-    setSelectedActivity(null);
+  // 음성 모달 닫기 핸들러
+  const handleCloseVoiceModal = () => {
+    console.log('🎤 음성 모달 닫기');
     setShowVoiceModal(false);
   };
 
@@ -80,12 +81,16 @@ export default function ActivityListPage() {
       <div className="map-container">
         {loading ? (
           <div className="map-loading">
-            <p>사용자 맞춤 활동이 표시됩니다</p>
+            <div style={{ textAlign: 'center', color: '#2C3E50' }}>
+              <div style={{ fontSize: '48px', marginBottom: '16px' }}>🗺️</div>
+              <p style={{ fontSize: '18px', fontWeight: '600', margin: '0' }}>
+                사용자 맞춤 활동이 표시됩니다
+              </p>
+            </div>
           </div>
         ) : (
           <MapComponent 
-            activities={activities} 
-            onActivityClick={(activity) => setSelectedActivity(activity)}
+            activities={activities}
           />
         )}
       </div>
@@ -96,16 +101,9 @@ export default function ActivityListPage() {
         initialSelected="" 
       />
 
-      {/* 모달들 */}
-      {selectedActivity && (
-        <ActivityModal 
-          activity={selectedActivity} 
-          onClose={closeModals}
-        />
-      )}
-
+      {/* 음성 모달 */}
       {showVoiceModal && (
-        <VoiceModal onClose={closeModals} />
+        <VoiceModal onClose={handleCloseVoiceModal} />
       )}
     </div>
   );

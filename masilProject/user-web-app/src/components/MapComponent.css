@@ -1,4 +1,4 @@
-/* src/components/MapComponent.css */
+/* src/components/MapComponent.css
 
 .map-wrapper {
   width: 100%;
@@ -15,7 +15,6 @@
   overflow: hidden;
 }
 
-/* 그리드 패턴으로 지도 느낌 연출 */
 .map-grid {
   position: absolute;
   top: 0;
@@ -29,7 +28,6 @@
   opacity: 0.6;
 }
 
-/* 지도 위 오버레이 텍스트 */
 .map-overlay {
   position: absolute;
   bottom: 20px;
@@ -49,7 +47,6 @@
   font-weight: 500;
 }
 
-/* 활동 마커 */
 .activity-marker {
   position: absolute;
   cursor: pointer;
@@ -88,7 +85,6 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
-/* 마커 타입별 색상 */
 .marker-support .marker-icon {
   border-color: #e74c3c;
   background: linear-gradient(135deg, #ff7675, #e17055);
@@ -119,7 +115,6 @@
   background-color: rgba(39, 174, 96, 0.9);
 }
 
-/* 모바일 최적화 */
 @media (max-width: 480px) {
   .marker-icon {
     width: 40px;
@@ -141,4 +136,222 @@
   .map-overlay p {
     font-size: 13px;
   }
+}*/
+
+/*src/components/MapComponent.css*/
+/* 지도 컨테이너 기본 스타일 */
+.map-container {
+width: 100%;
+height: 100vh;
+position: relative;
+overflow: hidden;
+background: #f8f9fa;
+}
+/* 지도 헤더 */
+.map-header {
+position: absolute;
+top: 0;
+left: 0;
+right: 0;
+background: linear-gradient(135deg, #2d3748 0%, #4a5568 100%);
+color: white;
+padding: 16px 20px;
+z-index: 200;
+box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+.map-title {
+font-size: 20px;
+font-weight: 700;
+margin: 0;
+text-align: center;
+}
+/* 네이버 지도 영역 */
+.naver-map {
+width: 100%;
+height: calc(100vh - 60px);
+margin-top: 60px;
+border: none;
+outline: none;
+}
+/* 커스텀 마커 스타일 */
+.custom-marker {
+background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+color: white;
+padding: 10px 16px;
+border-radius: 25px;
+font-size: 14px;
+font-weight: 600;
+box-shadow: 0 6px 20px rgba(255, 107, 107, 0.4);
+border: 3px solid white;
+max-width: 180px;
+text-align: center;
+cursor: pointer;
+transition: all 0.3s ease;
+position: relative;
+white-space: nowrap;
+overflow: hidden;
+text-overflow: ellipsis;
+}
+.custom-marker:hover {
+transform: translateY(-2px) scale(1.05);
+box-shadow: 0 8px 25px rgba(255, 107, 107, 0.6);
+}
+.custom-marker::after {
+content: '';
+position: absolute;
+bottom: -8px;
+left: 50%;
+transform: translateX(-50%);
+width: 0;
+height: 0;
+border-left: 8px solid transparent;
+border-right: 8px solid transparent;
+border-top: 8px solid #ee5a24;
+}
+/* 로딩 상태 */
+.loading-overlay {
+position: absolute;
+top: 0;
+left: 0;
+right: 0;
+bottom: 0;
+background: rgba(248, 249, 250, 0.95);
+display: flex;
+flex-direction: column;
+align-items: center;
+justify-content: center;
+z-index: 300;
+}
+.loading-content {
+text-align: center;
+color: #4a5568;
+}
+.loading-icon {
+font-size: 64px;
+margin-bottom: 20px;
+animation: bounce 2s infinite;
+}
+@keyframes bounce {
+0%, 20%, 50%, 80%, 100% {
+transform: translateY(0);
+}
+40% {
+transform: translateY(-10px);
+}
+60% {
+transform: translateY(-5px);
+}
+}
+.loading-title {
+font-size: 18px;
+font-weight: 600;
+margin-bottom: 8px;
+}
+.loading-subtitle {
+font-size: 14px;
+color: #718096;
+}
+/* 서버 연결 상태 */
+.connection-status {
+position: absolute;
+top: 80px;
+left: 20px;
+background: rgba(239, 68, 68, 0.95);
+color: white;
+padding: 12px 16px;
+border-radius: 12px;
+font-size: 14px;
+font-weight: 500;
+z-index: 250;
+box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);
+backdrop-filter: blur(10px);
+border: 1px solid rgba(255, 255, 255, 0.1);
+}
+.connection-status.connected {
+background: rgba(72, 187, 120, 0.95);
+box-shadow: 0 4px 15px rgba(72, 187, 120, 0.3);
+}
+/* 개발자 정보 패널 */
+.dev-info-panel {
+position: absolute;
+bottom: 20px;
+right: 20px;
+background: rgba(0, 0, 0, 0.85);
+color: white;
+padding: 16px;
+border-radius: 12px;
+font-size: 13px;
+z-index: 250;
+backdrop-filter: blur(10px);
+min-width: 160px;
+}
+.dev-info-row {
+display: flex;
+justify-content: space-between;
+margin-bottom: 6px;
+}
+.dev-info-row:last-child {
+margin-bottom: 0;
+}
+.dev-info-label {
+color: #a0aec0;
+}
+.dev-info-value {
+font-weight: 600;
+}
+.dev-info-value.connected {
+color: #68d391;
+}
+.dev-info-value.disconnected {
+color: #fc8181;
+}
+/* 줌 컨트롤 커스터마이징 */
+.naver-map .nmp_ZoomControl {
+right: 20px !important;
+top: 80px !important;
+}
+/* 반응형 디자인 */
+@media (max-width: 768px) {
+.map-header {
+padding: 12px 16px;
+}
+.map-title {
+font-size: 18px;
+}
+.naver-map {
+height: calc(100vh - 48px);
+margin-top: 48px;
+}
+.custom-marker {
+padding: 8px 12px;
+font-size: 12px;
+max-width: 140px;
+}
+.connection-status {
+top: 60px;
+left: 16px;
+font-size: 13px;
+padding: 10px 14px;
+}
+.dev-info-panel {
+bottom: 16px;
+right: 16px;
+font-size: 12px;
+padding: 12px;
+}
+}
+/* 다크 모드 지원 */
+@media (prefers-color-scheme: dark) {
+.map-container {
+background: #1a202c;
+}
+.loading-overlay {
+background: rgba(26, 32, 44, 0.95);
+}
+.loading-content {
+color: #e2e8f0;
+}
+.loading-subtitle {
+color: #a0aec0;
+}
 }

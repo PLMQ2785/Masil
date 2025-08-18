@@ -72,7 +72,7 @@ export default function JobForm({ editingJob, onComplete }) {
       address,
       job_latitude: parseFloat(jobLatitude),
       job_longitude: parseFloat(jobLongitude),
-      tags: [], // tags 필드는 현재 폼에서 사용하지 않으므로 빈 배열로 전달
+      // tags: [], // tags 필드는 현재 폼에서 사용하지 않으므로 빈 배열로 전달
     };
 
     const isEditing = !!editingJob;

@@ -62,22 +62,60 @@ export default function MapComponent() {
 
 // src/components/MapComponent.jsx
 import React, { useEffect, useState, useRef } from 'react';
+import ApiService from '../services/ApiService';
+import JobDetailModal from './JobDetailModal';
 
 export default function MapComponent() {
-  const [opportunities, setOpportunities] = useState([]);
+  const [jobs, setJobs] = useState([]);
+  const [selectedJob, setSelectedJob] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [userLocation, setUserLocation] = useState(null);
+  const [showModal, setShowModal] = useState(false);
   const mapRef = useRef(null);
   const [mapLoaded, setMapLoaded] = useState(false);
+  const [naverMap, setNaverMap] = useState(null);
+  const markersRef = useRef([]);
 
+  // 📍 사용자 위치 획득
   useEffect(() => {
-    // 네이버 지도 API 로딩 확인 및 지연 초기화
+    const getUserLocation = () => {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const location = {
+              latitude: position.coords.latitude,
+              longitude: position.coords.longitude
+            };
+            setUserLocation(location);
+            console.log('📍 사용자 위치 획득 성공:', location);
+          },
+          (error) => {
+            console.warn('⚠️ 사용자 위치 획득 실패, 기본 위치 사용:', error);
+            // 기본 위치: 서울시청
+            setUserLocation({ latitude: 37.5665, longitude: 126.9780 });
+          },
+          { timeout: 10000, enableHighAccuracy: true }
+        );
+      } else {
+        console.warn('⚠️ Geolocation 미지원, 기본 위치 사용');
+        setUserLocation({ latitude: 37.5665, longitude: 126.9780 });
+      }
+    };
+
+    getUserLocation();
+  }, []);
+
+  // 🗺️ 네이버 지도 초기화
+  useEffect(() => {
     const initializeMap = () => {
-      if (window.naver && window.naver.maps && mapRef.current) {
+      if (window.naver && window.naver.maps && mapRef.current && userLocation) {
         try {
-          console.log('🗺️ 네이버 지도 초기화 시작');
+          console.log('🗺️ 네이버 지도 초기화 시작 - 사용자 위치:', userLocation);
           
           const mapOptions = {
-            center: new window.naver.maps.LatLng(37.5665, 126.9780),
-            zoom: 12,
+            center: new window.naver.maps.LatLng(userLocation.latitude, userLocation.longitude),
+            zoom: 13,
             mapTypeControl: false,
             scaleControl: false,
             logoControl: false,
@@ -90,104 +128,159 @@ export default function MapComponent() {
           
           const map = new window.naver.maps.Map(mapRef.current, mapOptions);
           
-          console.log('✅ 네이버 지도 초기화 성공');
+          // 사용자 위치 마커 추가 (블루 도트)
+          new window.naver.maps.Marker({
+            position: new window.naver.maps.LatLng(userLocation.latitude, userLocation.longitude),
+            map: map,
+            icon: {
+              content: `
+                <div style="
+                  background: #3b82f6;
+                  width: 20px;
+                  height: 20px;
+                  border-radius: 50%;
+                  border: 3px solid white;
+                  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+                "></div>
+              `,
+              anchor: new window.naver.maps.Point(10, 10)
+            },
+            title: '현재 위치'
+          });
+          
+          setNaverMap(map);
           setMapLoaded(true);
           
-          // 지도 로딩 완료 후 데이터 가져오기
-          fetchOpportunitiesAndDrawMarkers(map);
+          console.log('✅ 네이버 지도 초기화 성공');
           
         } catch (error) {
           console.error('❌ 네이버 지도 초기화 실패:', error);
+          setError('지도를 불러올 수 없습니다.');
         }
       } else {
-        console.log('⏳ 네이버 지도 API 대기 중...');
-        // API 로딩이 안 된 경우 재시도
+        console.log('⏳ 네이버 지도 API 또는 사용자 위치 대기 중...');
         setTimeout(initializeMap, 500);
       }
     };
 
-    // 컴포넌트 마운트 후 약간의 지연을 두고 초기화
-    const timer = setTimeout(initializeMap, 100);
-    
-    return () => {
-      clearTimeout(timer);
-    };
-  }, []);
-
-  const fetchOpportunitiesAndDrawMarkers = async (map) => {
-    try {
-      // ✅ API 호출 대신 목업 데이터 사용 (API 서버가 없을 경우 대비)
-      const mockData = [
-        {
-          id: 1,
-          title: '보육시설 지원',
-          latitude: 37.5665,
-          longitude: 126.9780
-        },
-        {
-          id: 2,
-          title: '독서 모임',
-          latitude: 37.5675,
-          longitude: 126.9785
-        },
-        {
-          id: 3,
-          title: '운동 활동',
-          latitude: 37.5655,
-          longitude: 126.9775
-        }
-      ];
-
-      console.log('✅ 지도 데이터 로딩 성공:', mockData);
-      setOpportunities(mockData);
-
-      // 마커 생성
-      mockData.forEach((op) => {
-        const markerPosition = new window.naver.maps.LatLng(op.latitude, op.longitude);
-        
-        const marker = new window.naver.maps.Marker({
-          position: markerPosition,
-          map: map,
-          title: op.title,
-          icon: {
-            content: '<div style="background: #FF6B6B; color: white; padding: 4px 8px; border-radius: 12px; font-size: 12px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">' + op.title + '</div>',
-            anchor: new window.naver.maps.Point(0, 0)
-          }
-        });
-
-        const infowindow = new window.naver.maps.InfoWindow({
-          content: `
-            <div style="padding: 12px; border: 1px solid #ddd; background: white; border-radius: 8px; font-size: 14px; min-width: 150px;">
-              <strong>${op.title}</strong><br/>
-              <small style="color: #666;">클릭하여 자세히 보기</small>
-            </div>
-          `
-        });
-
-        window.naver.maps.Event.addListener(marker, 'click', () => {
-          if (infowindow.getMap()) {
-            infowindow.close();
-          } else {
-            infowindow.open(map, marker);
-          }
-        });
-      });
-
-    } catch (error) {
-      console.error('❌ 지도 데이터 로딩 실패:', error);
-      
-      // API 실패 시에도 기본 마커 하나는 표시
-      const defaultMarker = new window.naver.maps.Marker({
-        position: new window.naver.maps.LatLng(37.5665, 126.9780),
-        map: map,
-        title: '기본 위치'
-      });
+    if (userLocation) {
+      const timer = setTimeout(initializeMap, 100);
+      return () => clearTimeout(timer);
     }
+  }, [userLocation]);
+
+  // 📊 일거리 데이터 조회 (사용자 위치 기반)
+  useEffect(() => {
+    const fetchJobs = async () => {
+      if (!mapLoaded || !naverMap || !userLocation) return;
+      
+      try {
+        setIsLoading(true);
+        setError(null);
+        
+        console.log('📊 사용자 위치 기반 일거리 데이터 조회 시작');
+        const jobsData = await ApiService.getJobsForMap(
+          userLocation.latitude, 
+          userLocation.longitude, 
+          10, // 10km 반경
+          50  // 최대 50개
+        );
+        
+        setJobs(jobsData);
+        createMarkersOnMap(jobsData);
+        
+        console.log('✅ 일거리 데이터 조회 및 마커 생성 완료:', jobsData.length + '개');
+        
+      } catch (error) {
+        console.error('❌ 일거리 데이터 조회 실패:', error);
+        setError('일거리 정보를 불러올 수 없습니다.');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchJobs();
+  }, [mapLoaded, naverMap, userLocation]);
+
+  // 🎯 지도에 핀 마커 생성
+  const createMarkersOnMap = (jobsData) => {
+    // 기존 마커 제거
+    markersRef.current.forEach(marker => marker.setMap(null));
+    markersRef.current = [];
+
+    jobsData.forEach((job) => {
+      const markerPosition = new window.naver.maps.LatLng(job.job_latitude, job.job_longitude);
+      
+      const marker = new window.naver.maps.Marker({
+        position: markerPosition,
+        map: naverMap,
+        title: job.title,
+        icon: {
+          content: `
+            <div style="
+              position: relative;
+              cursor: pointer;
+              transition: all 0.3s ease;
+            " onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
+              <svg width="40" height="50" viewBox="0 0 40 50" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <!-- 핀 드롭 섀도우 -->
+                <ellipse cx="20" cy="47" rx="8" ry="3" fill="rgba(44, 62, 80, 0.2)"/>
+                
+                <!-- 메인 핀 모양 -->
+                <path d="M20 2C11.163 2 4 9.163 4 18c0 12 16 28 16 28s16-16 16-28c0-8.837-7.163-16-16-16z" 
+                      fill="#BFCC6B" 
+                      stroke="white" 
+                      stroke-width="2"/>2C3E50
+                
+                <!-- 중앙 원 -->
+                <circle cx="20" cy="18" r="8" fill="white"/>
+                <circle cx="20" cy="18" r="5" fill="#2C3E50"/>
+                
+                <!-- 하이라이트 효과 -->
+                <ellipse cx="17" cy="15" rx="2" ry="3" fill="rgba(255, 255, 255, 0.3)"/>
+              </svg>
+            </div>
+          `,
+          anchor: new window.naver.maps.Point(20, 50)
+        }
+      });
+
+      // 🔍 마커 클릭 이벤트 - 상세정보 조회 및 모달 표시
+      window.naver.maps.Event.addListener(marker, 'click', async () => {
+        try {
+          console.log(`🔍 일거리 ${job.job_id} 상세정보 조회 시작`);
+          
+          // 상세정보 조회
+          const jobDetail = await ApiService.getJobById(job.job_id);
+          setSelectedJob(jobDetail);
+          setShowModal(true);
+
+          console.log('✅ 상세정보 조회 완료');
+
+        } catch (error) {
+          console.error('❌ 상세정보 조회 실패:', error);
+          setError('상세정보를 불러올 수 없습니다. 잠시 후 다시 시도해주세요.');
+          
+          // 에러 메시지 자동 제거
+          setTimeout(() => {
+            setError(null);
+          }, 3000);
+        }
+      });
+
+      markersRef.current.push(marker);
+    });
+  };
+
+  // 모달 닫기 핸들러
+  const handleCloseModal = () => {
+    setShowModal(false);
+    setSelectedJob(null);
   };
 
   return (
     <div style={{ width: '100%', height: '100%', position: 'relative' }}>
-      {/* ✅ 지도 컨테이너 */}
+      {/* 🗺️ 지도 컨테이너 */}
       <div 
         ref={mapRef}
         style={{
@@ -201,8 +294,8 @@ export default function MapComponent() {
         }}
       />
       
-      {/* ✅ 지도 로딩 표시 */}
-      {!mapLoaded && (
+      {/* 📊 로딩 상태 표시 */}
+      {(isLoading || !mapLoaded || !userLocation) && (
         <div style={{
           position: 'absolute',
           top: 0,
@@ -212,17 +305,54 @@ export default function MapComponent() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          backgroundColor: 'rgba(248, 249, 250, 0.9)',
-          color: '#666',
-          fontSize: '14px',
+          backgroundColor: 'rgba(248, 249, 250, 0.98)',
+          color: '#2C3E50',
+          fontSize: '18px',
+          fontFamily: "'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+          fontWeight: '600',
           zIndex: 10
         }}>
           <div style={{ textAlign: 'center' }}>
-            <div>🗺️</div>
-            <div>지도를 불러오는 중...</div>
+            <div style={{ fontSize: '48px', marginBottom: '16px' }}>🗺️</div>
+            <div style={{ marginBottom: '8px' }}>
+              {!userLocation ? '위치 정보를 가져오는 중...' : 
+               !mapLoaded ? '지도를 불러오는 중...' : 
+               '주변 일거리를 찾는 중...'}
+            </div>
+            <div style={{ fontSize: '16px', color: '#5A6C7D' }}>잠시만 기다려주세요</div>
           </div>
         </div>
       )}
+      
+      {/* ❌ 에러 상태 표시 */}
+      {error && (
+        <div style={{
+          position: 'absolute',
+          top: '20px',
+          left: '20px',
+          right: '20px',
+          padding: '16px 20px',
+          backgroundColor: '#fef2f2',
+          color: '#dc2626',
+          border: '1px solid #fecaca',
+          borderRadius: '12px',
+          fontSize: '16px',
+          fontFamily: "'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+          fontWeight: '600',
+          zIndex: 15,
+          textAlign: 'center',
+          boxShadow: '0 4px 12px rgba(220, 38, 38, 0.15)'
+        }}>
+          ⚠️ {error}
+        </div>
+      )}
+
+      {/* 📋 상세정보 모달 */}
+      <JobDetailModal 
+        job={selectedJob}
+        isVisible={showModal}
+        onClose={handleCloseModal}
+      />
     </div>
   );
 }
