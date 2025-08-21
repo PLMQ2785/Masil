@@ -66,3 +66,77 @@ button:focus-visible {
     background-color: #f9f9f9;
   }
 } */
+
+/* Pretendard 폰트 import */
+@import url('https://cdn.jsdelivr.net/gh/Project-Noonnu/noonnu_font@1.1/Pretendard-Regular/font.css');
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+  font-size: 16px; /* 5060세대를 위한 기본 폰트 크기 증가 */
+  line-height: 1.6;
+  color: #333;
+  background-color: #f5f5f5;
+  overflow-x: hidden;
+}
+
+/* 메인 컬러 변수 정의 */
+:root {
+  --primary-color: #2C3E50;
+  --accent-color: #BFCC6B;
+  --background-color: #f5f5f5;
+  --text-primary: #333;
+  --text-secondary: #666;
+  --border-color: #e0e0e0;
+}
+
+/* 모바일 페이지 상단 고정 */
+.page-container {
+  padding-top: 0;
+  min-height: 100vh;
+  overflow-y: auto;
+  position: relative;
+}
+
+/* 버튼 기본 스타일 */
+.btn-primary {
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 14px 24px;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-primary:hover,
+.btn-primary:active {
+  background-color: var(--accent-color);
+  transform: translateY(-1px);
+}
+
+.btn-secondary {
+  background-color: transparent;
+  color: var(--primary-color);
+  border: 2px solid var(--primary-color);
+  border-radius: 8px;
+  padding: 14px 24px;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-secondary:hover,
+.btn-secondary:active {
+  background-color: var(--accent-color);
+  border-color: var(--accent-color);
+  color: white;
+}

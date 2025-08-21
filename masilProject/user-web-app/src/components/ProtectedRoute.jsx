@@ -18,7 +18,7 @@ export default function ProtectedRoute({ children, adminOnly = false, session })
     // 세션이 있으면, 해당 사용자의 역할을 조회합니다.
     const fetchRole = async () => {
       const { data: profile } = await supabase
-        .from('users')
+        .from('profiles')
         .select('role')
         .eq('id', session.user.id)
         .single();

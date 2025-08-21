@@ -1,0 +1,154 @@
+{
+  "user": {
+    "user_id": 123,
+    "home_latitude": 37.55,
+    "home_longitude": 127.07,
+    "availability_json": {
+      "Mon": [["09:00","12:00"]],
+      "Sat": [["10:00","12:00"]]
+    },
+    "interests": ["정원","실내"],
+    "preferred_jobs": ["안내","정리","체력:하"],
+    "work_history": "백화점 안내/질서 유지 2년, 사무보조 1년.(장시간 서있는 업무 가능)",
+    "his_short": null,
+    "his_hash": null
+  },
+  "candidates": [
+    {
+      "job_id": 47,
+      "title": "방과후돌봄지원단",
+      "hourly_wage": 12684,
+      "work_days": "1000111",
+      "start_time": "09:00:00",
+      "end_time": "18:00:00",
+      "place": "동서울지역아동복지센터",
+      "address": "서울특별시 강동구 둔촌제2동 61-4",
+      "job_latitude": 37.569109,
+      "job_longitude": 127.077314,
+      "sim_interest": 0.8167
+    },
+    {
+      "job_id": 84,
+      "title": "청소년시설지원단",
+      "hourly_wage": 12684,
+      "work_days": "1000111",
+      "start_time": "09:00:00",
+      "end_time": "18:00:00",
+      "place": "강동구청소년지원센터",
+      "address": "서울특별시 강동구 아리수로93길 47",
+      "job_latitude": 37.590311,
+      "job_longitude": 127.084843,
+      "sim_interest": 0.804
+    },
+    {
+      "job_id": 106,
+      "title": "노인시설지원단 (구 데이원)",
+      "hourly_wage": 12684,
+      "work_days": "1000111",
+      "start_time": "09:00:00",
+      "end_time": "18:00:00",
+      "place": "정원실버요양원2호점",
+      "address": "서울 강동구 양재대로124길 41 (길동, 성원빌딩)",
+      "job_latitude": 37.542715,
+      "job_longitude": 127.074623,
+      "sim_interest": 0.7998
+    },
+    {
+      "job_id": 51,
+      "title": "방과후돌봄지원단",
+      "hourly_wage": 12684,
+      "work_days": "1000111",
+      "start_time": "09:00:00",
+      "end_time": "18:00:00",
+      "place": "서울중심지역아동센터",
+      "address": "서울특별시 강동구 천호대로162길 34",
+      "job_latitude": 37.554599,
+      "job_longitude": 127.019901,
+      "sim_interest": 0.7979
+    },
+    {
+      "job_id": 20,
+      "title": "시니어 사서도우미",
+      "hourly_wage": 12684,
+      "work_days": "1000111",
+      "start_time": "09:00:00",
+      "end_time": "18:00:00",
+      "place": "아람작은도서관",
+      "address": "서울특별시 강동구 양재대로84길 31",
+      "job_latitude": 37.512698,
+      "job_longitude": 127.060702,
+      "sim_interest": 0.6842
+    },
+    {
+      "job_id": 42,
+      "title": "방과후돌봄지원단",
+      "hourly_wage": 12684,
+      "work_days": "1000111",
+      "start_time": "09:00:00",
+      "end_time": "18:00:00",
+      "place": "고덕2동청소년지역아동센터",
+      "address": "서울특별시 강동구 상일로17길 17",
+      "job_latitude": 37.557458,
+      "job_longitude": 127.116556,
+      "sim_interest": 0.6751
+    },
+    {
+      "job_id": 10,
+      "title": "시니어 복지 보안관",
+      "hourly_wage": 12684,
+      "work_days": "1000111",
+      "start_time": "09:00:00",
+      "end_time": "18:00:00",
+      "place": "암사1동",
+      "address": "서울특별시 강동구 암사1동",
+      "job_latitude": 37.524872,
+      "job_longitude": 127.076439,
+      "sim_interest": 0.6466
+    },
+    {
+      "job_id": 69,
+      "title": "늘봄학교지원단",
+      "hourly_wage": 12684,
+      "work_days": "1000111",
+      "start_time": "09:00:00",
+      "end_time": "18:00:00",
+      "place": "신명초",
+      "address": "서울특별시 강동구 명일로24길 33 (길동)",
+      "job_latitude": 37.555429,
+      "job_longitude": 127.090681,
+      "sim_interest": 0.6361
+    },
+    {
+      "job_id": 13,
+      "title": "시니어 복지 보안관",
+      "hourly_wage": 12684,
+      "work_days": "1000111",
+      "start_time": "09:00:00",
+      "end_time": "18:00:00",
+      "place": "명일1동",
+      "address": "서울특별시 강동구 명일1동",
+      "job_latitude": 37.556415,
+      "job_longitude": 127.034532,
+      "sim_interest": 0.6341
+    },
+    {
+      "job_id": 7,
+      "title": "시니어 복지 보안관",
+      "hourly_wage": 12684,
+      "work_days": "1000111",
+      "start_time": "09:00:00",
+      "end_time": "18:00:00",
+      "place": "천호3동",
+      "address": "서울특별시 강동구 천호3동",
+      "job_latitude": 37.510528,
+      "job_longitude": 127.07972,
+      "sim_interest": 0.6174
+    }
+  ],
+  "meta": {
+    "k": 10,
+    "source_k": 120,
+    "query": "가벼운 실내 안내",
+    "note": "demo: filled null coords & sim_interest; random sampled top-k then sorted by sim_interest"
+  }
+}

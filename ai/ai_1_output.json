@@ -1,0 +1,107 @@
+{
+  "user": {
+    "locale": "ko-KR",
+    "age": 0,
+    "pref_keywords": [
+      "정원",
+      "실내"
+    ],
+    "availability": {
+      "Mon": [
+        [
+          "09:00",
+          "12:00"
+        ]
+      ],
+      "Sat": [
+        [
+          "10:00",
+          "12:00"
+        ]
+      ]
+    }
+  },
+  "candidates": [
+    {
+      "job_id": 47,
+      "title": "방과후돌봄지원단",
+      "org": null,
+      "desc": "방과후 돌봄 지원을 위한 업무입니다.",
+      "sim_interest": 0.82,
+      "time_overlap": 0.14,
+      "hourly_wage": 12684,
+      "pay_norm": 0.5,
+      "distance_km": 2.22,
+      "travel_min": 17,
+      "work_days": "1000111",
+      "start_time": "09:00:00",
+      "end_time": "18:00:00",
+      "features": {
+        "indoor": "indoor",
+        "english": null,
+        "physical": null,
+        "interaction": null,
+        "warnings": [],
+        "tags": [
+          "정원",
+          "실내"
+        ]
+      }
+    },
+    {
+      "job_id": 84,
+      "title": "청소년시설지원단",
+      "org": null,
+      "desc": "청소년 시설 지원을 위한 업무입니다.",
+      "sim_interest": 0.8,
+      "time_overlap": 0.14,
+      "hourly_wage": 12684,
+      "pay_norm": 0.5,
+      "distance_km": 4.67,
+      "travel_min": 26,
+      "work_days": "1000111",
+      "start_time": "09:00:00",
+      "end_time": "18:00:00",
+      "features": {
+        "indoor": null,
+        "english": null,
+        "physical": null,
+        "interaction": null,
+        "warnings": [],
+        "tags": []
+      }
+    },
+    {
+      "job_id": 106,
+      "title": "노인시설지원단 (구 데이원)",
+      "org": null,
+      "desc": "노인 시설 지원을 위한 업무입니다.",
+      "sim_interest": 0.8,
+      "time_overlap": 0.14,
+      "hourly_wage": 12684,
+      "pay_norm": 0.5,
+      "distance_km": 0.91,
+      "travel_min": 12,
+      "work_days": "1000111",
+      "start_time": "09:00:00",
+      "end_time": "18:00:00",
+      "features": {
+        "indoor": null,
+        "english": null,
+        "physical": null,
+        "interaction": null,
+        "warnings": [],
+        "tags": []
+      }
+    }
+  ],
+  "meta": {
+    "query": "가벼운 실내 안내",
+    "k": 3,
+    "computed_at": "2025-08-15T23:56:12.022916+09:00"
+  },
+  "user_summary": {
+    "his_short": "백화점에서 2년간 안내 및 질서 유지, 사무보조 1년 경험.",
+    "his_hash": "ca88b206dc8d7d3fd7f6c6d76651a0b59fb7d727"
+  }
+}

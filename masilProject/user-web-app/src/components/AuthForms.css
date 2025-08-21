@@ -1,0 +1,642 @@
+/* src/components/AuthForms.css */
+
+/* ✅ 추가: Pretendard 폰트 및 글로벌 설정 */
+@import url('https://cdn.jsdelivr.net/gh/Project-Noonnu/noonnu_font@1.1/Pretendard-Regular/font.css');
+
+/* ✅ 추가: CSS 변수 정의 */
+:root {
+  --primary-color: #2C3E50;
+  --accent-color: #BFCC6B;
+  --background-color: #f5f5f5;
+  --text-primary: #333;
+  --text-secondary: #666;
+  --border-color: #e0e0e0;
+}
+
+/* ✅ 추가: 전체 폰트 설정 */
+* {
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+}
+
+.auth-container {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 20px;
+  background-color: white;
+  min-height: 100vh;
+  font-size: 16px; /* ✅ 수정: 5060세대 고려 기본 폰트 크기 증가 */
+}
+
+.auth-header {
+  display: flex;
+  align-items: center;
+  justify-content: center; /* ✅ 수정: 중앙 정렬 강화 */
+  margin-bottom: 30px;
+  padding-top: 20px;
+  position: relative; /* ✅ 추가: 절대 위치 설정을 위한 기준점 */
+}
+
+.back-btn {
+  background: none;
+  border: none;
+  font-size: 24px; /* ✅ 수정: 터치 영역 고려 크기 증가 */
+  color: var(--primary-color);
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 50%;
+  transition: background-color 0.3s ease;
+  position: absolute; /* ✅ 수정: 절대 위치로 변경 */
+  left: 0; 
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.back-btn:hover,
+.back-btn:active {
+  background-color: var(--accent-color);
+  color: white;
+}
+
+.auth-title {
+  font-size: 26px; /* ✅ 수정: 5060세대 고려 폰트 크기 증가 */
+  font-weight: 700;
+  color: var(--primary-color);
+  margin: 0;
+  text-align: center; /* ✅ 수정: 중앙 정렬 명시 */
+  width: 100%;
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.form-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ✅ 추가: 구분선 스타일 */
+.section-divider {
+  height: 1px;
+  background-color: var(--border-color);
+  margin: 20px 0;
+}
+
+.auth-input,
+.auth-textarea {
+  width: 100%;
+  padding: 16px; /* ✅ 수정: 터치 영역 확대 */
+  border: 2px solid var(--border-color);
+  border-radius: 8px;
+  font-size: 16px; /* ✅ 수정: 5060세대 고려 폰트 크기 */
+  font-family: inherit;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  box-sizing: border-box;
+}
+
+.auth-input:focus,
+.auth-textarea:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(44, 62, 80, 0.1);
+}
+
+/* ✅ 추가: 생년월일 입력 필드 모바일 최적화 */
+.date-input-wrapper {
+  position: relative;
+}
+
+.date-input {
+  position: relative;
+}
+
+.date-input::-webkit-datetime-edit {
+  padding: 0;
+}
+
+.date-input::-webkit-datetime-edit-fields-wrapper {
+  padding: 0;
+}
+
+.date-input::-webkit-calendar-picker-indicator {
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%232C3E50' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='18' rx='2' ry='2'%3E%3C/rect%3E%3Cline x1='16' y1='2' x2='16' y2='6'%3E%3C/line%3E%3Cline x1='8' y1='2' x2='8' y2='6'%3E%3C/line%3E%3Cline x1='3' y1='10' x2='21' y2='10'%3E%3C/line%3E%3C/svg%3E") no-repeat;
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+}
+
+.date-label {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+  margin-left: 4px;
+}
+
+.section-title {
+  font-size: 20px; /* ✅ 수정: 5060세대 고려 폰트 크기 증가 */
+  font-weight: 600;
+  color: var(--primary-color);
+  margin-bottom: 4px;
+}
+
+.section-subtitle {
+  font-size: 15px; /* ✅ 수정: 5060세대 고려 폰트 크기 증가 */
+  color: var(--text-secondary);
+  margin-bottom: 16px;
+}
+
+.interest-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.interest-btn {
+  padding: 14px 16px; /* ✅ 수정: 터치 영역 확대 */
+  border: 2px solid var(--border-color);
+  border-radius: 20px;
+  background-color: white;
+  color: var(--text-primary);
+  font-size: 16px; /* ✅ 수정: 5060세대 고려 폰트 크기 증가 */
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-align: center;
+  min-height: 48px; /* ✅ 추가: 터치 영역 보장 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.interest-btn:hover {
+  border-color: var(--primary-color);
+  background-color: rgba(44, 62, 80, 0.05);
+}
+
+.interest-btn.selected {
+  background-color: var(--primary-color);
+  border-color: var(--primary-color);
+  color: white;
+}
+
+.interest-btn.selected:hover,
+.interest-btn.selected:active {
+  background-color: var(--accent-color);
+  border-color: var(--accent-color);
+}
+
+/* ✅ 추가: 체력 수준 버튼 스타일 */
+.physical-level-group {
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.physical-btn {
+  flex: 1;
+  padding: 16px; /* ✅ 수정: 터치 영역 확대 */
+  border: 2px solid var(--border-color);
+  border-radius: 8px;
+  background-color: white;
+  color: var(--text-primary);
+  font-size: 18px; /* ✅ 수정: 5060세대 고려 폰트 크기 증가 */
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-height: 52px; /* ✅ 추가: 터치 영역 보장 */
+}
+
+.physical-btn:hover {
+  border-color: var(--primary-color);
+  background-color: rgba(44, 62, 80, 0.05);
+}
+
+.physical-btn.selected {
+  background-color: var(--primary-color);
+  border-color: var(--primary-color);
+  color: white;
+}
+
+.physical-btn.selected:hover,
+.physical-btn.selected:active {
+  background-color: var(--accent-color);
+  border-color: var(--accent-color);
+}
+
+/* ✅ 추가: 실내/실외 선호 버튼 스타일 */
+.inside-outside-level-group {
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.inside-outside-btn {
+  flex: 1;
+  padding: 16px; /* ✅ 수정: 터치 영역 확대 */
+  border: 2px solid var(--border-color);
+  border-radius: 8px;
+  background-color: white;
+  color: var(--text-primary);
+  font-size: 18px; /* ✅ 수정: 5060세대 고려 폰트 크기 증가 */
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-height: 52px; /* ✅ 추가: 터치 영역 보장 */
+}
+
+.inside-outside-btn:hover {
+  border-color: var(--primary-color);
+  background-color: rgba(44, 62, 80, 0.05);
+}
+
+.inside-outside-btn.selected {
+  background-color: var(--primary-color);
+  border-color: var(--primary-color);
+  color: white;
+}
+
+.inside-outside-btn.selected:hover,
+.inside-outside-btn.selected:active {
+  background-color: var(--accent-color);
+  border-color: var(--accent-color);
+}
+
+/* ✅ 추가: 이동 가능 시간 버튼 스타일 */
+.moving-level-group {
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.moving-btn {
+  flex: 1;
+  padding: 16px; /* ✅ 수정: 터치 영역 확대 */
+  border: 2px solid var(--border-color);
+  border-radius: 8px;
+  background-color: white;
+  color: var(--text-primary);
+  font-size: 18px; /* ✅ 수정: 5060세대 고려 폰트 크기 증가 */
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-height: 52px; /* ✅ 추가: 터치 영역 보장 */
+}
+
+.moving-btn:hover {
+  border-color: var(--primary-color);
+  background-color: rgba(44, 62, 80, 0.05);
+}
+
+.moving-btn.selected {
+  background-color: var(--primary-color);
+  border-color: var(--primary-color);
+  color: white;
+}
+
+.moving-btn.selected:hover,
+.moving-btn.selected:active {
+  background-color: var(--accent-color);
+  border-color: var(--accent-color);
+}
+
+/* ✅ 추가: 요일 버튼 그룹 스타일 (7개 균등 배치) */
+.day-group {
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.day-btn {
+  flex: 1;
+  padding: 16px 8px; /* ✅ 수정: 터치 영역 확대 */
+  border: 2px solid var(--border-color);
+  border-radius: 8px;
+  background-color: white;
+  color: var(--text-primary);
+  font-size: 16px; /* ✅ 수정: 5060세대 고려 폰트 크기 */
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-height: 52px; /* ✅ 추가: 터치 영역 보장 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.day-btn:hover {
+  border-color: var(--primary-color);
+  background-color: rgba(44, 62, 80, 0.05);
+}
+
+.day-btn.selected {
+  background-color: var(--primary-color);
+  border-color: var(--primary-color);
+  color: white;
+}
+
+.day-btn.selected:hover,
+.day-btn.selected:active {
+  background-color: var(--accent-color);
+  border-color: var(--accent-color);
+}
+
+/* ✅ 수정: 시간대 버튼 그룹 스타일 (3개 균등 배치) */
+.time-level-group {
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.time-btn {
+  flex: 1;
+  padding: 16px; /* ✅ 수정: 터치 영역 확대 */
+  border: 2px solid var(--border-color);
+  border-radius: 8px;
+  background-color: white;
+  color: var(--text-primary);
+  font-size: 18px; /* ✅ 수정: 5060세대 고려 폰트 크기 증가 */
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-height: 52px; /* ✅ 추가: 터치 영역 보장 */
+}
+
+.time-btn:hover {
+  border-color: var(--primary-color);
+  background-color: rgba(44, 62, 80, 0.05);
+}
+
+.time-btn.selected {
+  background-color: var(--primary-color);
+  border-color: var(--primary-color);
+  color: white;
+}
+
+.time-btn.selected:hover,
+.time-btn.selected:active {
+  background-color: var(--accent-color);
+  border-color: var(--accent-color);
+}
+
+.form-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 40px;
+  margin-bottom: 40px;
+}
+
+.btn-outline-small,
+.btn-primary-small {
+  flex: 1;
+  height: 56px; /* ✅ 수정: 터치 영역 확대 */
+  font-size: 17px; /* ✅ 수정: 5060세대 고려 폰트 크기 증가 */
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-outline-small {
+  background-color: transparent;
+  color: var(--primary-color);
+  border: 2px solid var(--primary-color);
+}
+
+.btn-primary-small {
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+}
+
+.btn-outline-small:hover,
+.btn-outline-small:active {
+  background-color: var(--accent-color);
+  border-color: var(--accent-color);
+  color: white;
+}
+
+.btn-primary-small:hover,
+.btn-primary-small:active {
+  background-color: var(--accent-color);
+}
+
+.btn-outline-small:disabled,
+.btn-primary-small:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ✅ 추가: 로그인 폼용 전체 너비 버튼 스타일 */
+.btn-primary-full {
+  width: 100%;
+  height: 56px;
+  font-size: 17px;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  margin-top: 20px;
+}
+
+.btn-primary-full:hover,
+.btn-primary-full:active {
+  background-color: var(--accent-color);
+}
+
+.btn-primary-full:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* 모바일 최적화 */
+@media (max-width: 480px) {
+  .auth-container {
+    padding: 16px;
+  }
+  
+  .interest-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+  
+  .interest-btn {
+    padding: 12px 14px;
+    font-size: 15px;
+    min-height: 44px;
+  }
+  
+  .physical-level-group {
+    gap: 8px;
+  }
+  
+  .physical-btn {
+    padding: 14px;
+    font-size: 16px;
+    min-height: 48px;
+  }
+
+  .inside-outside-level-group {
+    gap: 8px;
+  }
+
+  .inside-outside-btn {
+    padding: 14px;
+    font-size: 16px;
+    min-height: 48px;
+  }
+
+  .moving-level-group {
+    gap: 8px;
+  }
+
+  .moving-btn {
+    padding: 14px;
+    font-size: 16px;
+    min-height: 48px;
+  }
+
+  /* ✅ 추가: 모바일에서 요일 버튼 스타일 */
+  .day-group {
+    gap: 6px;
+  }
+
+  .day-btn {
+    padding: 12px 6px;
+    font-size: 14px;
+    min-height: 44px;
+  }
+
+  /* ✅ 추가: 모바일에서 시간대 버튼 스타일 */
+  .time-level-group {
+    gap: 8px;
+  }
+
+  .time-btn {
+    padding: 14px;
+    font-size: 16px;
+    min-height: 48px;
+  }
+
+  .btn-outline-small,
+  .btn-primary-small,
+  .btn-primary-full {
+    height: 52px;
+    font-size: 16px;
+  }
+}
+
+/* 시간표 스타일 - AuthForms.css에 추가할 내용 */
+
+.schedule-table {
+  margin: 20px 0;
+  overflow-x: auto;
+}
+
+.time-schedule-table {
+  width: 100%;
+  border-collapse: collapse;
+  background-color: #fff;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.time-schedule-table th,
+.time-schedule-table td {
+  padding: 12px 8px;
+  text-align: center;
+  border: 1px solid #e0e0e0;
+}
+
+.time-schedule-table th {
+  background-color: #f8f9fa;
+  font-weight: 600;
+  font-size: 14px;
+  color: #333;
+}
+
+.day-header {
+  background-color: #f1f3f5;
+  min-width: 50px;
+}
+
+.time-label {
+  background-color: #f8f9fa;
+  font-weight: 500;
+  font-size: 13px;
+  color: #555;
+  min-width: 60px;
+}
+
+.time-cell {
+  padding: 8px;
+}
+
+.time-slot-btn {
+  width: 32px;
+  height: 32px;
+  border: 2px solid #ddd;
+  border-radius: 6px;
+  background-color: #fff;
+  color: #666;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto;
+}
+
+.time-slot-btn:hover {
+  border-color: #007bff;
+  background-color: #f0f8ff;
+}
+
+.time-slot-btn.selected {
+  background-color: #007bff;
+  border-color: #007bff;
+  color: white;
+  font-weight: bold;
+}
+
+.time-slot-btn.selected:hover {
+  background-color: #0056b3;
+  border-color: #0056b3;
+}
+
+/* 모바일 반응형 */
+@media (max-width: 768px) {
+  .schedule-table {
+    margin: 15px -10px;
+  }
+  
+  .time-schedule-table th,
+  .time-schedule-table td {
+    padding: 8px 4px;
+    font-size: 12px;
+  }
+  
+  .time-slot-btn {
+    width: 28px;
+    height: 28px;
+    font-size: 12px;
+  }
+  
+  .day-header {
+    min-width: 40px;
+  }
+  
+  .time-label {
+    min-width: 50px;
+    font-size: 12px;
+  }
+}

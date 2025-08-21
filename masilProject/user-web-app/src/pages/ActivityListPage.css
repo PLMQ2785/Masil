@@ -1,0 +1,115 @@
+/* src/pages/ActivityListPage.css - 완전 새로운 구조 */
+
+.activity-page-container {
+  width: 100vw;
+  height: 100vh;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  background-color: #ffffff;
+  overflow: hidden;
+  position: relative;
+}
+
+/* ✅ 헤더 - 고정된 높이 */
+.activity-header {
+  width: 100%;
+  height: 60px; /* 고정 높이 */
+  background-color: var(--primary-color, #34495e);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 20px;
+  box-sizing: border-box;
+  position: relative;
+  z-index: 100;
+  flex-shrink: 0; /* 크기 고정 */
+}
+
+.activity-title {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0;
+  text-align: center;
+  font-family: var(--font, 'Noto Sans KR', system-ui);
+}
+
+/* ✅ 지도 컨테이너 - 남은 공간 모두 사용 */
+.map-container {
+  flex: 1; /* 남은 공간 모두 사용 */
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  background-color: #f8f9fa;
+  position: relative;
+  overflow: hidden;
+}
+
+/* ✅ 지도 로딩 화면 */
+.map-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  background-color: #f8f9fa;
+  color: #666;
+  font-family: var(--font, 'Noto Sans KR', system-ui);
+  margin: 0;
+  padding: 0;
+}
+
+/* ✅ 지도 요소 전체 채우기 */
+.map-container > div,
+.map-container #map,
+.map-container > div > div {
+  width: 100% !important;
+  height: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+  display: block !important;
+}
+
+/* ✅ 네이버 지도 컨테이너 강제 스타일 */
+.map-container .naver-map {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* ✅ 하단 네비게이션 바 재정의 (ActivityListPage에서만) */
+.activity-page-container .bottom-nav {
+  width: 100%;
+  height: 80px; /* 고정 높이 */
+  flex-shrink: 0; /* 크기 고정 */
+  position: relative; /* fixed 대신 relative */
+  bottom: auto;
+  background-color: white;
+  border-top: 1px solid var(--border-color, #e0e0e0);
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  padding: 12px 0 16px;
+  box-sizing: border-box;
+  z-index: 100;
+}
+
+/* ✅ 모바일 최적화 */
+@media (max-width: 480px) {
+  .activity-header {
+    height: 50px; /* 모바일에서 헤더 높이 줄임 */
+    padding: 0 16px;
+  }
+  
+  .activity-title {
+    font-size: 16px;
+  }
+  
+  .activity-page-container .bottom-nav {
+    height: 70px; /* 모바일에서 네비게이션 높이 줄임 */
+    padding: 10px 0 14px;
+  }
+}

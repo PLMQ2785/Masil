@@ -1,0 +1,101 @@
+/* src/components/BottomNavBar.css - ActivityListPage 호환 수정 */
+
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background-color: white;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  padding: 12px 0 16px;
+  border-top: 1px solid var(--border-color, #e0e0e0);
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+  z-index: 100;
+  font-family: var(--font, 'Noto Sans KR', system-ui);
+  height: 52px;
+  box-sizing: border-box;
+}
+
+.nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 10px 18px;
+  border-radius: 12px;
+  transition: all 0.3s ease;
+  min-width: 80px;
+  min-height: 52px;
+  box-sizing: border-box;
+}
+
+.nav-item:hover {
+  background-color: rgba(44, 62, 80, 0.05);
+}
+
+.nav-item.active {
+  background-color: var(--accent-color, #BFCC6B);
+  color: white;
+}
+
+.nav-item.active .nav-icon {
+  transform: scale(1.1);
+}
+
+.nav-icon {
+  font-size: 26px;
+  transition: transform 0.3s ease;
+  line-height: 1;
+}
+
+.nav-item span {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary, #333);
+  transition: color 0.3s ease;
+  line-height: 1.2;
+}
+
+.nav-item.active span {
+  color: white;
+  font-weight: 600;
+}
+
+.nav-item:active {
+  transform: scale(0.95);
+}
+
+/* ✅ 모바일 최적화 */
+@media (max-width: 480px) {
+  .bottom-nav {
+    padding: 10px 0 14px;
+    height: 48px;
+  }
+  
+  .nav-item {
+    padding: 8px 14px;
+    min-width: 70px;
+    min-height: 48px;
+  }
+  
+  .nav-icon {
+    font-size: 24px;
+  }
+  
+  .nav-item span {
+    font-size: 13px;
+  }
+}
+
+/* ✅ ActivityListPage 내부의 네비게이션 바는 별도 스타일 적용 */
+.activity-page-container .bottom-nav {
+  position: relative;
+  height: 80px; /* 고정 높이 */
+  border-top: none;
+  box-shadow: none;
+}

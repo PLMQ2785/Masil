@@ -1,0 +1,87 @@
+{
+  "version": "explain.v1.1",
+  "items": [
+    {
+      "job_id": 47,
+      "why_short": "사용자가 선호하는 '정원'과 '실내' 키워드와 잘 맞습니다. 시간대도 일부 겹치는 점이 긍정적입니다.",
+      "highlights": [
+        "정원",
+        "실내"
+      ],
+      "warnings": [],
+      "used_fields": [
+        "sim_interest",
+        "pay_norm",
+        "distance_km",
+        "travel_min"
+      ],
+      "score_breakdown": {
+        "sim_interest": 0.82,
+        "time_overlap": 0.14,
+        "pay_norm": 0.5,
+        "travel_min": 17,
+        "distance_km": 2.22
+      },
+      "fallback": false,
+      "confidence": 0.9
+    },
+    {
+      "job_id": 84,
+      "why_short": "사용자의 관심사와 유사한 청소년시설지원단 직무를 추천합니다. 근무 시간과 거리도 적절하여 적합할 것으로 보입니다.",
+      "highlights": [
+        "유사 관심도: 0.8",
+        "근무 시간: 09:00 - 18:00",
+        "거리: 4.67 km"
+      ],
+      "warnings": [],
+      "used_fields": [
+        "sim_interest",
+        "time_overlap",
+        "pay_norm",
+        "travel_min",
+        "distance_km"
+      ],
+      "score_breakdown": {
+        "sim_interest": 0.8,
+        "time_overlap": 0.14,
+        "pay_norm": 0.5,
+        "travel_min": 26,
+        "distance_km": 4.67
+      },
+      "fallback": false,
+      "confidence": 0.9
+    },
+    {
+      "job_id": 106,
+      "why_short": "사용자가 선호하는 실내 업무와 관련된 직무입니다. 유사 관심도가 높아 추천합니다.",
+      "highlights": [
+        "sim_interest: 0.8",
+        "distance_km: 0.91",
+        "travel_min: 12"
+      ],
+      "warnings": [],
+      "used_fields": [
+        "sim_interest",
+        "distance_km",
+        "travel_min"
+      ],
+      "score_breakdown": {
+        "sim_interest": 0.8,
+        "time_overlap": 0.14,
+        "pay_norm": 0.5,
+        "travel_min": 12,
+        "distance_km": 0.91
+      },
+      "fallback": false,
+      "confidence": 0.9
+    }
+  ],
+  "meta": {
+    "llm_model": "gpt-4o-mini",
+    "latency_ms": 12953,
+    "prompt_tokens": 1419,
+    "fallback_ratio": 0.0,
+    "facts_hash": "5c129f6f6a4fc3526b771a9f1874c938",
+    "errors": []
+  }
+}
