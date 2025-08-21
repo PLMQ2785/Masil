@@ -1,0 +1,856 @@
+import hashlib
+import json
+import math
+import os
+import traceback
+from datetime import datetime, timedelta, timezone, date
+from typing import Any, Dict, List, Optional, Tuple
+from uuid import UUID
+
+import numpy as np
+import requests
+from dotenv import load_dotenv
+from fastapi import FastAPI, HTTPException, Query, UploadFile, File, Form
+from fastapi.middleware.cors import CORSMiddleware
+from openai import OpenAI
+from pydantic import BaseModel, Field
+from supabase import Client, create_client
+
+# --- 1. 초기화 ---
+load_dotenv()
+
+# Supabase 및 OpenAI 클라이언트
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_KEY")
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+# FastAPI 앱
+app = FastAPI()
+
+# CORS 미들웨어 설정
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:5173",
+        "https://localhost:5173", # https 로컬호스트
+        "http://192.168.68.67:5173", # http IP 주소
+        "https://192.168.68.67:5173", # 👈 이 줄을 추가하세요.
+        "https://jobis.ngrok.app",
+        "https://jobisbe.ngrok.app",
+        "http://192.168.68.113:5173"
+        ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# --- 2. Pydantic 데이터 모델 ---
+class Job(BaseModel):
+    title: str
+    participants: Optional[int] = None
+    hourly_wage: int
+    place: str
+    address: Optional[str] = None
+    work_days: Optional[str] = Field(None, max_length=7)
+    start_time: Optional[str] = None
+    end_time: Optional[str] = None
+    client: Optional[str] = None
+    description: Optional[str] = None
+    job_latitude: float
+    job_longitude: float
+
+class Review(BaseModel):
+    user_id: UUID
+    rating: int = Field(..., ge=1, le=5)
+    review_text: Optional[str] = None
+    status: str
+
+class RecommendRequest(BaseModel):
+    user_id: UUID
+    query: str
+    exclude_ids: Optional[List[int]] = None
+    current_latitude: Optional[float] = None #gps 좌표
+    current_longitude: Optional[float] = None #gps 좌표
+
+class ApplyRequest(BaseModel):
+    user_id: UUID
+    
+class SessionUpdateRequest(BaseModel):
+    user_id: UUID
+    session_id: UUID
+    
+# --- Pydantic 데이터 모델 추가 ---
+class EngagementRequest(BaseModel):
+    user_id: UUID
+    job_id: int
+    status: str # 'applied', 'saved', 'rejected', 'dismissed' 등
+    
+class UserProfileUpdate(BaseModel):
+    nickname: Optional[str] = Field(None, max_length=50)
+    gender: Optional[str] = Field(None, pattern="^(M|F)$")
+    date_of_birth: Optional[date] = None
+    home_address: Optional[str] = Field(None, max_length=120)
+    home_latitude: Optional[float] = None
+    home_longitude: Optional[float] = None
+    # 👇 --- 이 부분을 수정합니다 --- 👇
+    preferred_jobs: Optional[List[str]] = None # Dict -> List[str]
+    interests: Optional[List[str]] = None      # Dict -> List[str]
+    # 👆 --- 수정 끝 --- 👆
+    availability_json: Optional[Dict[str, Any]] = None
+    work_history: Optional[str] = None
+    ability_physical: Optional[int] = Field(None, ge=1, le=3)
+    preferred_environment: Optional[str] = Field(None, pattern="^(indoor|outdoor|any)$")
+    max_travel_time_min: Optional[int] = Field(None, gt=0)
+    
+# [Users Utility]
+class SessionUpdateRequest(BaseModel):
+    user_id: UUID
+    session_id: UUID
+
+# --- 3. 유틸리티 함수 (AI-1, AI-2 스크립트에서 가져옴) ---
+WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+
+#AI Part 1
+def haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    R = 6371.0088
+    phi1, phi2 = math.radians(lat1), math.radians(lat2)
+    dphi = phi2 - phi1
+    dlmb = math.radians(lon2 - lon1)
+    a = math.sin(dphi / 2) ** 2 + math.cos(phi1) * math.cos(phi2) * math.sin(dlmb / 2) ** 2
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+    return R * c
+
+def parse_time_to_min(s: str) -> int:
+    if not s or ":" not in s: return 0
+    parts = s.split(":")
+    return int(parts[0]) * 60 + int(parts[1])
+
+def interval_overlap_min(a_start: int, a_end: int, b_start: int, b_end: int) -> int:
+    return max(0, min(a_end, b_end) - max(a_start, b_start))
+
+def parse_work_days(bits: str) -> List[str]:
+    bits = (bits or "").strip()
+    if len(bits) != 7 or not set(bits) <= {"0", "1"}: return []
+    return [WEEKDAYS[i] for i, ch in enumerate(bits) if ch == "1"]
+
+def compute_time_overlap_metrics(availability_json: Dict, work_days_bits: str, start_time: str, end_time: str) -> Dict:
+    """
+    Returns multiple time-fit metrics:
+      - job_norm: overlapped minutes / (job daily minutes * number of job days)
+      - intersection_norm: overlapped minutes / (job daily minutes * number of days where either the start day
+                            or the following day has user availability; i.e., days that can actually overlap)
+      - user_fit_ratio: overlapped minutes / (user total available minutes across the week)
+      - time_fit: composite score combining the three (geometric mean for balance)
+
+    Supports overnight shifts (e.g., 22:00–02:00), counting overlap against the start day and the next day.
+    """
+    
+    # --- 👇 입력값 None 방어 코드 추가 👇 ---
+    if not availability_json: availability_json = {}
+    if not work_days_bits: work_days_bits = "0000000"
+    if not start_time: start_time = "00:00:00"
+    if not end_time: end_time = "00:00:00"
+    # --- 👆 수정 끝 👆 ---
+    
+    cand_days = parse_work_days(work_days_bits)
+    if not cand_days:
+        return {"job_norm": 0.0, "intersection_norm": 0.0, "user_fit_ratio": 0.0, "time_fit": 0.0}
+
+    # Candidate shift minutes (per day)
+    c_start = parse_time_to_min(start_time)
+    c_end = parse_time_to_min(end_time)
+    overnight = False
+    if c_end <= c_start:
+        # Treat as overnight: end on next day
+        c_end += 24*60
+        overnight = True
+    day_sched = c_end - c_start  # per day
+
+    # Precompute user availability per weekday in minutes and total
+    def slots_minutes(slots: List[List[str]]) -> int:
+        total = 0
+        for slot in slots or []:
+            s = parse_time_to_min(slot[0][:5]); e = parse_time_to_min(slot[1][:5])
+            if e <= s:
+                # Skip user overnight slots for now; recommend splitting into two slots if needed
+                continue
+            total += (e - s)
+        return total
+
+    user_total_min = 0
+    user_min_by_day = {}
+    for day in WEEKDAYS:
+        mins = slots_minutes(availability_json.get(day, []))
+        user_min_by_day[day] = mins
+        user_total_min += mins
+
+    # Overlap for a shift that STARTS on `day`
+    def overlap_with_day(day: str) -> int:
+        olap = 0
+        # Segment A: [c_start, min(c_end, 1440)) on `day`
+        segA_start, segA_end = c_start, min(c_end, 1440)
+        if segA_end > segA_start:
+            for slot in availability_json.get(day, []):
+                s = parse_time_to_min(slot[0][:5]); e = parse_time_to_min(slot[1][:5])
+                if e > s:
+                    olap += interval_overlap_min(segA_start, segA_end, s, e)
+        # Segment B: if overnight, [0, c_end-1440) on next day
+        if overnight and c_end > 1440:
+            next_idx = (WEEKDAYS.index(day) + 1) % 7
+            next_day = WEEKDAYS[next_idx]
+            segB_start, segB_end = 0, c_end - 1440
+            if segB_end > segB_start:
+                for slot in availability_json.get(next_day, []):
+                    s = parse_time_to_min(slot[0][:5]); e = parse_time_to_min(slot[1][:5])
+                    if e > s:
+                        olap += interval_overlap_min(segB_start, segB_end, s, e)
+        return olap
+
+    overlap_min = 0
+    intersection_days = 0
+    for day in cand_days:
+        overlap_d = overlap_with_day(day)
+        # Cap per-day overlap by the daily schedule minutes
+        overlap_min += min(overlap_d, day_sched)
+        # Count "intersection-eligible" days
+        next_day = WEEKDAYS[(WEEKDAYS.index(day)+1) % 7]
+        if user_min_by_day.get(day, 0) > 0 or (overnight and user_min_by_day.get(next_day, 0) > 0):
+            intersection_days += 1
+
+    job_total_min = day_sched * len(cand_days)
+
+    # Metrics
+    job_norm = (overlap_min / job_total_min) if job_total_min > 0 else 0.0
+    inter_den = (day_sched * max(intersection_days, 1))
+    intersection_norm = (overlap_min / inter_den) if inter_den > 0 else 0.0
+    user_fit_ratio = (overlap_min / user_total_min) if user_total_min > 0 else 0.0
+
+    # Composite: geometric mean with small epsilon to avoid zero-locking
+    eps = 1e-6
+    time_fit = ((job_norm+eps) * (intersection_norm+eps) * (user_fit_ratio+eps)) ** (1/3) - eps
+
+    return {
+        "job_norm": round(job_norm, 2),
+        "intersection_norm": round(intersection_norm, 2),
+        "user_fit_ratio": round(user_fit_ratio, 2),
+        "time_fit": round(time_fit, 2),
+        "overlap_min": int(round(overlap_min)),
+        "job_total_min": int(round(job_total_min)),
+        "user_total_min": int(round(user_total_min)),
+    }
+
+
+def estimate_travel_min(distance_km: float) -> int:
+    if distance_km <= 1.5: speed_kmh, penalty = 4.5, 0
+    elif distance_km <= 10: speed_kmh, penalty = 18.0, 10
+    else: speed_kmh, penalty = 30.0, 8
+    return int(round((distance_km / max(speed_kmh, 1e-6)) * 60 + penalty))
+
+#AI Part 2
+def build_prompt_for_reason(candidate, user_info, query):
+    """개별 추천 이유 생성을 위한 LLM 프롬프트"""
+    prompt = f"""당신은 AI 추천 전문가입니다. 사용자는 '{query}'라고 질문했습니다. 아래 [일자리 정보]를 보고, 이 일자리가 왜 사용자에게 좋은 추천인지 그 이유를 한 문장으로 간결하게 설명해주세요.
+
+[일자리 정보]
+- 제목: {candidate.get('title')}
+- 내용: {candidate.get('description')}
+- 장소: {candidate.get('place')}
+- 시급: {candidate.get('hourly_wage')}원
+- 거리: {candidate.get('distance_km')}km"""
+    return prompt
+
+def generate_fallback_reason(candidate):
+    """LLM 호출 실패 시 사용할 기본 추천 이유"""
+    return f"'{candidate.get('title')}'은(는) 사용자님의 요청과 관련성이 높아 추천합니다."
+
+# (기타 compute_time_overlap, llm_enrich_batch 등 필요한 유틸 함수들을 여기에 추가합니다)
+
+# --- 4. API 엔드포인트 ---
+
+# [Jobs CRUD]
+@app.post("/api/jobs")
+def create_job(job: Job):
+    text_to_embed = f"제목: {job.title}\n내용: {job.description}\n장소: {job.place}\n클라이언트: {job.client}"
+    try:
+        embedding_response = client.embeddings.create(input=[text_to_embed], model="text-embedding-3-small")
+        embedding_vector = embedding_response.data[0].embedding
+        job_data = job.model_dump()
+        job_data["embedding"] = embedding_vector
+        response = supabase.from_("jobs").insert(job_data).execute()
+        return response.data[0]
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"데이터 생성 실패: {str(e)}")
+
+@app.get("/api/jobs")
+def get_jobs(user_id: Optional[UUID] = None, limit: int = 10):
+    """
+    user_id 쿼리 파라미터가 있으면 개인화된 추천 목록을 반환하고,
+    없으면 관리자 페이지를 위한 전체 일자리 목록을 반환합니다.
+    """
+    try:
+        # --- 1. 개인화 추천 로직 (user_id가 있을 경우) ---
+        if user_id:
+            # 1a. 사용자 프로필 조회 (기준 위치, 선호 직무 등)
+            user_response = supabase.from_("users").select(
+                "home_latitude, home_longitude, preferred_jobs"
+            ).eq("id", str(user_id)).single().execute()
+            
+            user_profile = user_response.data
+            if not user_profile or user_profile.get("home_latitude") is None:
+                raise HTTPException(status_code=404, detail="사용자 프로필 또는 기준 위치 정보가 없습니다.")
+
+            user_lat = user_profile["home_latitude"]
+            user_lon = user_profile["home_longitude"]
+            preferred_jobs = user_profile.get("preferred_jobs", [])
+
+            # 1b. 사용자의 기준 위치 주변 일자리 검색 (1차 필터링)
+            nearby_jobs_response = supabase.rpc('nearby_jobs_full', {
+                'user_lat': user_lat,
+                'user_lon': user_lon,
+                'radius_meters': 10000, # 10km 반경
+                'result_limit': limit
+            }).execute()
+            
+            nearby_jobs_data = nearby_jobs_response.data
+            if not nearby_jobs_data:
+                return []
+
+            # 1c. 재정렬 (Reranking): 선호 직무와의 관련성 점수 계산
+            recommended_jobs = []
+            for job in nearby_jobs_data:
+                title = job.get("title", "")
+                
+                # 간단한 점수 계산: 선호 직무 키워드가 제목에 포함되면 1점씩 추가
+                preference_score = 0
+                if preferred_jobs:
+                    for pref in preferred_jobs:
+                        if pref in title:
+                            preference_score += 1
+                
+                # 거리 점수 (가까울수록 높음)
+                distance = haversine_km(user_lat, user_lon, job['job_latitude'], job['job_longitude'])
+                distance_score = 1 - (distance / 10) if distance <= 10 else 0
+
+                # 최종 점수 (선호도 50%, 거리 50%)
+                job['match_score'] = round((preference_score * 0.5) + (distance_score * 0.5), 4)
+                recommended_jobs.append(job)
+
+            # 최종 점수가 높은 순으로 정렬
+            recommended_jobs.sort(key=lambda x: x['match_score'], reverse=True)
+
+            return recommended_jobs[:limit]  # 상위 N개 반환
+
+        # --- 2. 전체 조회 로직 (user_id가 없을 경우) ---
+        else:
+            response = supabase.from_("jobs").select("*").order("created_at", desc=True).limit(limit).execute()
+            return response.data
+
+    except Exception as e:
+        error_traceback = traceback.format_exc()
+        raise HTTPException(status_code=500, detail=error_traceback)
+
+
+@app.get("/api/jobs/{job_id}")
+def get_job_by_id(job_id: int):
+    try:
+        response = supabase.from_("jobs").select("*").eq("job_id", job_id).single().execute()
+        return response.data
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"ID {job_id} 조회 실패: {str(e)}")
+
+@app.put("/api/jobs/{job_id}")
+def update_job(job_id: int, job: Job):
+    text_to_embed = f"제목: {job.title}\n내용: {job.description}\n장소: {job.place}\n클라이언트: {job.client}"
+    try:
+        embedding_response = client.embeddings.create(input=[text_to_embed], model="text-embedding-3-small")
+        embedding_vector = embedding_response.data[0].embedding
+        job_data = job.model_dump()
+        job_data["embedding"] = embedding_vector
+        job_data["updated_at"] = "now()"
+        response = supabase.from_("jobs").update(job_data).eq("job_id", job_id).execute()
+        return response.data[0]
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"데이터 수정 실패: {str(e)}")
+
+@app.delete("/api/jobs/{job_id}")
+def delete_job(job_id: int):
+    try:
+        response = supabase.from_("jobs").delete().eq("job_id", job_id).execute()
+        if not response.data:
+            raise HTTPException(status_code=404, detail=f"ID {job_id}를 찾을 수 없습니다.")
+        return {"message": f"ID {job_id}가 성공적으로 삭제되었습니다."}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"데이터 삭제 실패: {str(e)}")
+
+# [지원하기]
+@app.post("/api/jobs/{job_id}/apply")
+def apply_for_job(job_id: int, request: ApplyRequest):
+    try:
+        # 1. 지원 마감 여부 확인 (기존과 동일)
+        job_response = supabase.from_("jobs").select("participants, current_participants").eq("job_id", job_id).single().execute()
+        job = job_response.data
+        if not job:
+            raise HTTPException(status_code=404, detail="해당 일자리를 찾을 수 없습니다.")
+        if job.get('participants') is not None and job.get('current_participants', 0) >= job.get('participants'):
+            raise HTTPException(status_code=400, detail="모집이 마감되었습니다.")
+
+        # 2. 사용자의 지원 기록 생성 (기존과 동일)
+        review_data = {"job_id": job_id, "user_id": str(request.user_id), "status": "applied"}
+        supabase.from_("user_job_reviews").upsert(review_data).execute()
+        
+        # 3. DB 함수를 호출하여 지원자 수를 안전하게 1 증가
+        supabase.rpc('increment_applicants', {'job_id_to_update': job_id}).execute()
+
+        return {"message": "지원이 성공적으로 완료되었습니다."}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"지원 처리 중 오류 발생: {str(e)}")
+
+
+# [Reviews CRUD]
+@app.post("/api/jobs/{job_id}/reviews")
+def create_review_for_job(job_id: int, review: Review):
+    try:
+        review_data = review.model_dump()
+        review_data["job_id"] = job_id
+        review_data["user_id"] = str(review.user_id)
+        supabase.from_("user_job_reviews").insert(review_data).execute()
+        
+        agg_response = supabase.from_("user_job_reviews").select("rating", count="exact").eq("job_id", job_id).execute()
+        ratings = [item['rating'] for item in agg_response.data if item.get('rating') is not None]
+        new_review_count = agg_response.count
+        new_avg_rating = sum(ratings) / len(ratings) if ratings else 0
+
+        supabase.from_("jobs").update({
+            # "average_rating": new_avg_rating,
+            # "review_count": new_review_count
+        }).eq("job_id", job_id).execute()
+        
+        return {"message": "리뷰가 성공적으로 등록되었습니다."}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"리뷰 등록 실패: {str(e)}")
+
+@app.get("/api/jobs/{job_id}/reviews")
+def get_reviews_for_job(job_id: int):
+    try:
+        response = supabase.from_("user_job_reviews").select("*").eq("job_id", job_id).execute()
+        return response.data
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"리뷰 조회 실패: {str(e)}")
+
+
+
+
+@app.post("/api/users/update-session")
+def update_user_session(request: SessionUpdateRequest):
+    try:
+        response = supabase.from_("users").update({
+            "latest_session_id": str(request.session_id)
+        }).eq("id", str(request.user_id)).execute()
+        if not response.data:
+            raise HTTPException(status_code=404, detail="해당 사용자를 찾을 수 없습니다.")
+        return {"message": "세션이 성공적으로 업데이트되었습니다."}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"세션 업데이트 실패: {str(e)}")
+
+
+# [Geocoding Utility]
+@app.get("/api/geocode")
+def geocode_address(address: str = Query(..., min_length=1)):
+    api_key_id = os.getenv('NAVER_API_KEY_ID')
+    api_key = os.getenv('NAVER_API_KEY')
+    if not api_key_id or not api_key: raise HTTPException(status_code=500, detail="API 키가 서버에 설정되지 않았습니다.")
+    
+    url = f"https://maps.apigw.ntruss.com/map-geocode/v2/geocode?query={address}"
+    headers = {"X-NCP-APIGW-API-KEY-ID": api_key_id, "X-NCP-APIGW-API-KEY": api_key}
+    
+    try:
+        response = requests.get(url, headers=headers)
+        response.raise_for_status()
+        data = response.json()
+        if data.get("status") == "OK" and data.get("addresses"):
+            coords = data["addresses"][0]
+            return {"latitude": float(coords["y"]), "longitude": float(coords["x"])}
+        else:
+            raise HTTPException(status_code=404, detail="해당 주소의 좌표를 찾을 수 없습니다.")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Naver API 통신 오류: {str(e)}")
+
+
+# [Recommendation RAG API]
+# @app.post("/api/recommend-test")
+# def recommend_jobs(request: RecommendRequest):
+#     """(동기 최종본) 사용자 질문을 받아 RAG 파이프라인을 실행하고 추천 결과를 반환합니다."""
+#     try:
+#         # --- 1단계: 사용자 컨텍스트 조회 ---
+#         user_response = supabase.from_("users").select("*").eq("id", str(request.user_id)).single().execute()
+#         user_ctx = user_response.data
+#         if not user_ctx:
+#             raise HTTPException(status_code=404, detail="사용자 정보를 찾을 수 없습니다.")
+
+#         # --- 2단계: 쿼리 임베딩 ---
+#         embedding_response = client.embeddings.create(input=[request.query], model="text-embedding-3-small")
+#         query_embedding = embedding_response.data[0].embedding
+
+#         # --- 3단계: 후보군 검색 (Retrieval) ---
+#         candidates_response = supabase.rpc('match_jobs', {
+#             'query_embedding': query_embedding,
+#             'match_threshold': 0.3, # 실제 서비스에서는 이 값을 튜닝해야 합니다.
+#             'match_count': 50
+#         }).execute()
+        
+#         retrieved_jobs = candidates_response.data
+        
+#         # 👇 --- 디버깅을 위한 print 문 추가 --- 👇
+#         print(f"\n--- 초기 검색 결과 ---")
+#         print(f"유사도 0.3 이상인 후보 {len(retrieved_jobs)}개 발견됨")
+#         print("---------------------\n")
+#         # 👆 --- 디버깅 코드 끝 --- 👆
+        
+#         if not retrieved_jobs:
+#             return {"answer": "죄송하지만, 요청과 유사한 소일거리를 찾지 못했습니다.", "jobs": []}
+
+#         retrieved_ids = [job['job_id'] for job in retrieved_jobs]
+#         similarity_map = {job['job_id']: job['similarity'] for job in retrieved_jobs}
+        
+#         full_candidates_response = supabase.from_("jobs").select("*").in_("job_id", retrieved_ids).execute()
+#         candidates = full_candidates_response.data
+
+#         # --- 4단계: 필터링 및 재정렬 (Filtering & Reranking) ---
+#         reranked_jobs = []
+#         for job in candidates:
+#             # 거리 계산
+#             distance_km = haversine_km(
+#                 user_ctx.get('home_latitude'), user_ctx.get('home_longitude'),
+#                 job.get('job_latitude'), job.get('job_longitude')
+#             )
+            
+#             # 최종 점수 계산 (의미유사도 70%, 거리 30%)
+#             distance_score = 1 - (distance_km / 20) if distance_km <= 20 else 0 # 20km를 최대 거리로 가정
+#             match_score = similarity_map.get(job['job_id'], 0) * 0.7 + distance_score * 0.3
+            
+#             job['match_score'] = round(match_score, 4)
+#             job['distance_km'] = round(distance_km, 2)
+#             reranked_jobs.append(job)
+            
+#         reranked_jobs.sort(key=lambda x: x.get('match_score', 0), reverse=True)
+#         top_5_jobs = reranked_jobs[:5]
+
+#         if not top_5_jobs:
+#             return {"answer": "조건에 맞는 소일거리를 찾지 못했습니다.", "jobs": []}
+
+#         # --- 5단계: 최종 답변 생성 (Generation) ---
+#         context = "\n\n".join([f"- 제목: {job['title']} (ID: {job['job_id']})\n- 내용: {job['description']}" for job in top_5_jobs])
+#         prompt = f"""당신은 시니어에게 일자리를 추천하는 AI 비서입니다. 아래 [정보]를 바탕으로, 사용자의 [질문]에 대해 자연스러운 한 문장으로 답변해주세요. 답변 마지막에는 추천하는 일자리 중 가장 점수가 높은 것 하나의 제목을 언급해주세요.
+
+#                         [정보]
+#                         {context}
+
+#                         [질문]
+#                         {request.query}"""
+
+#         chat_response = client.chat.completions.create(
+#             model="gpt-4o-mini",
+#             messages=[{"role": "user", "content": prompt}]
+#         )
+#         answer = chat_response.choices[0].message.content
+
+#         # --- 6단계: 최종 결과 반환 ---
+#         return {"answer": answer, "jobs": top_5_jobs}
+        
+#     except Exception as e:
+#         error_traceback = traceback.format_exc()
+#         raise HTTPException(status_code=500, detail=error_traceback)
+
+# --- RAG 파이프라인 ---
+def run_rag_pipeline(user_id: UUID, query: str, k: int, exclude_ids: Optional[List[int]] = None, current_latitude: Optional[float] = None, current_longitude: Optional[float] = None) -> dict:
+    # 1. 사용자 컨텍스트 조회
+    user_response = supabase.from_("users").select("*").eq("id", str(user_id)).single().execute()
+    user_ctx = user_response.data
+    if not user_ctx:
+        raise HTTPException(status_code=404, detail="사용자 정보를 찾을 수 없습니다.")
+    
+    # 👇 --- 히스토리 조회 로직 추가 --- 👇
+    history_response = supabase.from_("user_job_reviews").select("job_id, status").eq("user_id", str(user_id)).execute()
+    user_history = history_response.data or []
+    
+    accepted_ids = {item['job_id'] for item in user_history if item['status'] in ['applied', 'completed', 'saved']}
+    rejected_ids = {item['job_id'] for item in user_history if item['status'] in ['rejected']}
+    # 👆 --- 로직 추가 끝 --- 👆
+
+    # 2. 쿼리 임베딩
+    embedding_response = client.embeddings.create(input=[query], model="text-embedding-3-small")
+    query_embedding = embedding_response.data[0].embedding
+
+    # 3. 후보군 검색 (Retrieval)
+    candidates_response = supabase.rpc('match_jobs', {'query_embedding': query_embedding, 'match_threshold': 0.3, 'match_count': 150}).execute()
+    retrieved_jobs = candidates_response.data
+    if not retrieved_jobs:
+        return {"answer": "죄송하지만, 요청과 유사한 소일거리를 찾지 못했습니다.", "jobs": []}
+    
+    # 👇 --- 이 부분을 수정합니다 --- 👇
+    # 제외할 ID가 있다면, 초기 후보군에서 필터링합니다.
+    print(exclude_ids)
+    if exclude_ids:
+        print(f"--- 제외 로직 실행! 제외할 ID: {exclude_ids} ---")
+        
+        retrieved_jobs_before_filter = len(retrieved_jobs)
+        retrieved_jobs = [job for job in retrieved_jobs if int(job['job_id']) not in exclude_ids]
+        print(f"필터링 전: {retrieved_jobs_before_filter}개 -> 필터링 후: {len(retrieved_jobs)}개")
+    
+    if not retrieved_jobs:
+        return {"answer": "죄송하지만, 더 이상 추천해드릴 다른 소일거리가 없습니다.", "jobs": []}
+    # 👆 --- 수정 끝 --- 👆
+    
+
+    retrieved_ids = [job['job_id'] for job in retrieved_jobs]
+    similarity_map = {job['job_id']: job['similarity'] for job in retrieved_jobs}
+    
+    full_candidates_response = supabase.from_("jobs").select("*").in_("job_id", retrieved_ids).execute()
+    candidates = full_candidates_response.data
+
+    # 4. 필터링 및 재정렬 (Filtering & Reranking)
+    reranked_jobs = []
+    
+    # 지역별 임금 통계 사전 계산
+    by_place: Dict[str, List[Dict[str, Any]]] = {}
+    for c in candidates:
+        by_place.setdefault(c.get("place",""), []).append(c)
+    
+    
+    for job in candidates:
+        # --- FactPack 생성 ---
+        # 거리 및 이동 시간
+        
+        # 👇 --- 기준 위치 결정 로직 (사용자 제안 반영) --- 👇
+        if current_latitude is not None and current_longitude is not None:
+            # 요청에 현재 위치가 있으면 그것을 기준점으로 사용
+            base_lat = current_latitude
+            base_lon = current_longitude
+        else:
+            # 요청에 현재 위치가 없으면 DB에 저장된 집 주소를 기준점으로 사용
+            base_lat = user_ctx.get('home_latitude')
+            base_lon = user_ctx.get('home_longitude')
+        
+        distance_km = haversine_km(base_lat, base_lon, job.get('job_latitude'), job.get('job_longitude'))
+        # if base_lat is None or base_lon is None:
+        #     # 기준점이 없으면 거리 계산을 건너뜁니다.
+        #     # distance_km = float('inf')
+        #     distance_km = haversine_km(user_ctx.get('home_latitude'), user_ctx.get('home_longitude'), job.get('job_latitude'), job.get('job_longitude'))
+        # else:
+        # --- 👆 수정 끝 --- 👆
+        
+        
+        # distance_km = haversine_km(user_ctx.get('home_latitude'), user_ctx.get('home_longitude'), job.get('job_latitude'), job.get('job_longitude'))
+        travel_min = estimate_travel_min(distance_km)
+        
+        # 시간 적합도
+        time_metrics = compute_time_overlap_metrics(
+            user_ctx.get("availability_json", {}),
+            job.get("work_days"),
+            job.get("start_time"),
+            job.get("end_time")
+        )
+        time_fit_score = time_metrics.get("time_fit", 0.0)
+        
+        # 임금 정규화 점수
+        # pay_norm_score = compute_pay_norm(by_place.get(job.get("place"), []), job.get("hourly_wage"))
+        pay_norm_score = 0.5 # 임시값
+        
+        # 👇 --- 히스토리 기반 점수 추가 --- 👇
+        history_score = 0
+        if job['job_id'] in accepted_ids:
+            history_score = 1.0 # 수락한 일자리는 가산점
+        elif job['job_id'] in rejected_ids:
+            history_score = -1.0 # 거절한 일자리는 큰 감점
+        # 👆 --- 로직 추가 끝 --- 👆
+        
+        # 최종 점수 계산 (가중치 예시)
+        final_score = (
+            similarity_map.get(job['job_id'], 0) * 0.5 + # 의미 유사도 50%
+            (1 - (distance_km / 20) if distance_km <= 20 else 0) * 0.1 + # 거리 10%
+            time_fit_score * 0.2 + # 시간 적합도 20%
+            pay_norm_score * 0.1 + # 임금 10%
+            history_score * 0.1   # 히스토리 10%
+        )
+        
+        job['match_score'] = round(final_score, 4)
+        job['distance_km'] = round(distance_km, 2)
+        job['travel_min'] = travel_min
+        job['time_fit'] = time_fit_score
+        
+        reranked_jobs.append(job)
+        
+    reranked_jobs.sort(key=lambda x: x.get('match_score', 0), reverse=True)
+    top_k_jobs = reranked_jobs[:k]
+    if not top_k_jobs:
+        return {"answer": "조건에 맞는 소일거리를 찾지 못했습니다.", "jobs": []}
+    
+    for job in top_k_jobs:
+        try:
+            # 각 job마다 LLM에 보낼 개별 프롬프트를 생성합니다.
+            prompt = build_prompt_for_reason(job, user_ctx, query)
+            
+            # 각 job에 대해 LLM 호출
+            reason_response = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.2
+            )
+            reason_text = reason_response.choices[0].message.content
+            
+            # 생성된 이유를 job 객체에 'reason' 키로 추가
+            job['reason'] = reason_text
+        except Exception as e:
+            print(f"Job ID {job.get('job_id')} 이유 생성 실패: {e}")
+            # LLM 호출 실패 시 기본 이유(fallback)를 사용합니다.
+            job['reason'] = generate_fallback_reason(job)
+
+    # 5. 최종 답변 생성 (Generation)
+    context = "\n\n".join([f"- 제목: {job['title']}\n- 내용: {job['description']}" for job in top_k_jobs])
+    # prompt = f"당신은 시니어에게 일자리를 추천하는 AI 비서입니다. 아래 [정보]'{context}'를 바탕으로, 사용자의 [질문] '{query}'에 대해 자연스러운 한 문장으로 답변해주세요."
+    prompt = f"""
+        당신은 시니어 사용자에게 일자리를 추천하는 따뜻하고 친절한 AI 비서 '잡있으'입니다.
+        당신의 목표는 아래 [검색된 일자리 정보]와 사용자의 [질문]을 종합적으로 분석하여, 왜 이 일자리들이 사용자에게 적합한지를 설명하는 개인화된 추천 메시지를 새로 작성하는 것입니다.
+
+        [규칙]
+        1. 딱딱한 요약이 아닌, 사람에게 말을 거는 듯한 자연스러운 말투를 사용하세요.
+        2. 검색된 정보 중에서 가장 추천 점수가 높은 일자리 1~2개를 언급하며, 그 이유를 간단히 엮어서 설명해주세요.
+        3. 사용자의 원래 질문의 핵심(예: '조용한', '컴퓨터')을 답변에 자연스럽게 포함시키세요.
+        4. 최종 답변은 2~3 문장으로 완성하세요.
+
+        [검색된 일자리 정보]
+        {context}
+
+        [질문]
+        {query}
+
+        [추천 메시지]
+        """
+    chat_response = client.chat.completions.create(model="gpt-4o-mini", messages=[{"role": "user", "content": prompt}])
+    answer = chat_response.choices[0].message.content
+
+    return {"answer": answer, "jobs": top_k_jobs}
+
+
+# [AI 추천]
+@app.post("/api/recommend")
+def recommend_jobs_text(request: RecommendRequest):
+    """텍스트 쿼리를 받아 RAG 파이프라인을 실행합니다."""
+    try:
+        return run_rag_pipeline(request.user_id, request.query, 10, request.exclude_ids, request.current_latitude, request.current_longitude)
+        # return run_rag_pipeline(request.user_id, request.query, 3)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
+@app.post("/api/stt")
+def speech_to_text(audio_file: UploadFile = File(...)):
+    """오디오 파일을 받아 텍스트로 변환한 결과를 반환합니다."""
+    try:
+        # Whisper API가 이해할 수 있는 (파일명, 파일내용, MIME타입) 튜플 형태로 전달
+        file_content = audio_file.file.read()
+        mime_type = "audio/m4a" if audio_file.filename.lower().endswith('.m4a') else audio_file.content_type
+
+        transcript_response = client.audio.transcriptions.create(
+            model="whisper-1",
+            file=(audio_file.filename, file_content, mime_type),
+            response_format="text"
+        )
+        
+        query_text = str(transcript_response).strip()
+        print(f"🎤 Whisper STT 결과: \"{query_text}\"")
+
+        # 변환된 텍스트만 JSON 형태로 반환
+        return {"text": query_text}
+
+    except Exception as e:
+        error_traceback = traceback.format_exc()
+        raise HTTPException(status_code=500, detail=error_traceback)    
+
+
+@app.post("/api/recommend-voice")
+def recommend_jobs_voice(user_id: UUID = Form(...), audio_file: UploadFile = File(...), exclude_ids: Optional[str] = Form(None), current_latitude: Optional[float] = Form(None), current_longitude: Optional[float] = Form(None)):
+    """오디오 파일을 받아 텍스트로 변환 후, RAG 파이프라인을 실행합니다."""
+    try:
+        # transcript = client.audio.transcriptions.create(model="whisper-1", file=audio_file.file, response_format="text")
+         # 👇 --- 이 부분을 수정합니다 --- 👇
+        # Whisper API가 이해할 수 있는 (파일명, 파일내용) 튜플 형태로 전달
+        transcript_response = client.audio.transcriptions.create(
+            model="whisper-1",
+            file=(audio_file.filename, audio_file.file.read()),
+            response_format="text"
+        )
+        # 👆 --- 수정 끝 --- 👆
+        
+        # 2. 받은 문자열을 숫자 리스트로 파싱합니다.
+        # exclude_ids = []
+        if exclude_ids:
+            # 콤마로 구분된 문자열을 숫자 리스트로 변환
+            exclude_ids = [int(id_str) for id_str in exclude_ids.split(',')]
+
+
+        # transcript_response가 이제 응답 객체이므로, 실제 텍스트를 가져와야 합니다.
+        # (라이브러리 버전에 따라 다를 수 있으나, 일반적으로 아래와 같습니다.)
+        query_text = transcript_response.strip()
+        print(f"🎤 Whisper STT 결과: \"{query_text}\"")
+        print(f"제외할 ID: {exclude_ids}")
+        return run_rag_pipeline(user_id, query_text, 5, exclude_ids, current_latitude, current_longitude)
+    except Exception as e:
+        error_traceback = traceback.format_exc()
+        raise HTTPException(status_code=500, detail=error_traceback)
+    
+@app.post("/api/engagements")
+def record_engagement(request: EngagementRequest):
+    """사용자의 일자리 상호작용(지원, 저장, 거절 등)을 기록합니다."""
+    
+    # status 값이 유효한지 확인
+    valid_statuses = ['saved', 'applied', 'completed', 'cancelled', 'rejected', 'dismissed']
+    if request.status not in valid_statuses:
+        raise HTTPException(status_code=422, detail="유효하지 않은 status 값입니다.")
+
+    try:
+        # upsert를 사용하여 기록을 생성하거나 갱신합니다.
+        # 한 사용자가 한 일자리에 대해 가지는 상태는 하나뿐입니다.
+        response = supabase.from_("user_job_reviews").upsert({
+            "user_id": str(request.user_id),
+            "job_id": request.job_id,
+            "status": request.status
+        }, on_conflict="user_id, job_id").execute() # user_id와 job_id가 겹치면 update
+
+        return {"message": f"'{request.status}' 상태가 성공적으로 기록되었습니다."}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"행동 기록 실패: {str(e)}")
+    
+@app.get("/api/users/{user_id}/profile")
+def get_user_profile(user_id: UUID):
+    """특정 사용자의 프로필 정보를 조회합니다."""
+    try:
+        # users 테이블에서 id가 일치하는 사용자를 찾습니다.
+        response = supabase.from_("users").select("*").eq("id", str(user_id)).single().execute()
+        
+        if not response.data:
+            raise HTTPException(status_code=404, detail="프로필을 찾을 수 없습니다.")
+            
+        return response.data
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"프로필 조회 실패: {str(e)}")
+    
+@app.put("/api/users/{user_id}/profile")
+def update_user_profile(user_id: UUID, profile_update: UserProfileUpdate):
+    """특정 사용자의 프로필 정보를 수정합니다."""
+    try:
+        # Pydantic 모델을 딕셔너리로 변환하고, None 값은 제외하여
+        # 사용자가 보낸 필드만 업데이트하도록 합니다.
+        update_data = profile_update.model_dump(exclude_unset=True)
+        
+        if not update_data:
+            raise HTTPException(status_code=400, detail="수정할 내용이 없습니다.")
+
+        response = supabase.from_("users").update(update_data).eq("id", str(user_id)).execute()
+        
+        if not response.data:
+            raise HTTPException(status_code=404, detail="프로필을 찾을 수 없어 수정에 실패했습니다.")
+
+        return response.data[0]
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"프로필 수정 실패: {str(e)}")
