@@ -10,6 +10,8 @@
   --voice-border-color: #E8ECEF;
   --voice-shadow: rgba(44, 62, 80, 0.15);
   --voice-blur-backdrop: rgba(0, 0, 0, 0.7);
+  --voice-orange: #ff6b35; /* 오렌지 색상 */
+  --voice-orange-hover: #e55a2b; /* 오렌지 호버 색상 */
 }
 
 /* Pretendard 폰트 적용 */
@@ -130,49 +132,6 @@
   justify-content: center;
 }
 
-/* JOBITS 음성 모달 아이콘 스타일 */
-.jobits-voice-image {
-  width: 64px;
-  height: 64px;
-  object-fit: contain;
-  transition: all 0.3s ease;
-}
-
-/* 기본 상태 (준비) - 흰색 */
-.jobits-voice-image.ready {
-  filter: brightness(0) saturate(100%) invert(100%) sepia(0%) saturate(7500%) hue-rotate(324deg) brightness(106%) contrast(106%);
-}
-
-/* 듣는 중 상태 - 흰색 */
-.jobits-voice-image.listening {
-  filter: brightness(0) saturate(100%) invert(100%) sepia(0%) saturate(7500%) hue-rotate(324deg) brightness(106%) contrast(106%);
-  animation: jobitsVoicePulse 1.5s ease-in-out infinite;
-}
-
-@keyframes jobitsVoicePulse {
-  0%, 100% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(1.1);
-  }
-}
-
-/* 처리 중 및 완료 상태 - 흰색 + 회전 */
-.jobits-voice-image.loading {
-  filter: brightness(0) saturate(100%) invert(100%) sepia(0%) saturate(7500%) hue-rotate(324deg) brightness(106%) contrast(106%);
-  animation: jobitsRotate 2s linear infinite;
-}
-
-@keyframes jobitsRotate {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
 .voice-icon {
   width: 120px;
   height: 120px;
@@ -180,9 +139,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.3s ease;
   position: relative;
   z-index: 2;
+  /* 트랜지션 제거하여 즉시 색상 변경 */
 }
 
 /* 기본 상태 (준비) */
@@ -192,11 +151,11 @@
   box-shadow: 0 8px 25px rgba(44, 62, 80, 0.2);
 }
 
-/* 듣는 중 상태 */
+/* 듣는 중 상태 - 오렌지 색상으로 즉시 변경 */
 .voice-icon-container.listening .voice-icon {
-  background: #e74c3c;
-  color: white;
-  box-shadow: 0 8px 25px rgba(231, 76, 60, 0.3);
+  background: var(--voice-orange) !important;
+  color: white !important;
+  box-shadow: 0 8px 25px rgba(255, 107, 53, 0.3) !important;
   animation: voicePulse 1.5s ease-in-out infinite;
 }
 
@@ -209,7 +168,7 @@
   }
 }
 
-/* 처리 중 상태 */
+/* 처리 중 상태 - 기본 색상으로 복원 */
 .voice-icon-container.processing .voice-icon,
 .voice-icon-container.complete .voice-icon {
   background: var(--voice-accent-color);
@@ -217,11 +176,11 @@
   box-shadow: 0 8px 25px rgba(191, 204, 107, 0.3);
 }
 
-/* 펄스 링 효과 (듣는 중) */
+/* 펄스 링 효과 (듣는 중) - 오렌지 색상 */
 .pulse-ring,
 .pulse-ring-2 {
   position: absolute;
-  border: 3px solid #e74c3c;
+  border: 3px solid var(--voice-orange);
   border-radius: 50%;
   opacity: 0;
   animation: voicePulseRing 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
@@ -250,16 +209,11 @@
   }
 }
 
-/* 로딩 스피너 - JOBITS 아이콘 적용 */
+/* 로딩 스피너 */
 .loading-spinner {
   display: flex;
   align-items: center;
   justify-content: center;
-}
-
-.loading-spinner .jobits-voice-image {
-  width: 64px;
-  height: 64px;
 }
 
 /* 상태 텍스트 영역 */
@@ -289,6 +243,22 @@
   margin: 0;
   line-height: 1.5;
   font-style: italic;
+}
+
+/* 오류 메시지 스타일 */
+.voice-error {
+  background: #ffe6e6;
+  border: 1px solid #ffcccc;
+  padding: 20px;
+  border-radius: 16px;
+  margin-top: 24px;
+}
+
+.voice-error p {
+  font-size: 16px;
+  color: #d32f2f;
+  margin: 0;
+  line-height: 1.5;
 }
 
 /* 추천 결과 박스 스타일 */
@@ -348,32 +318,54 @@
   border: none;
   border-radius: 12px;
   cursor: pointer;
-  transition: all 0.3s ease;
   font-family: inherit;
+  /* 트랜지션 제거하여 즉시 색상 변경 */
 }
 
+/* 시작 버튼 - 기본 색상 */
 .voice-start-btn {
   background: var(--voice-primary-color);
   color: white;
 }
 
-.voice-start-btn:hover,
-.voice-start-btn:active {
+.voice-start-btn:hover {
   background: var(--voice-accent-color);
   transform: translateY(-2px);
   box-shadow: 0 8px 25px rgba(44, 62, 80, 0.2);
+  transition: all 0.2s ease;
 }
 
+.voice-start-btn:active {
+  background: var(--voice-accent-color);
+  transform: translateY(0);
+}
+
+/* 종료 버튼 - 오렌지 색상 고정 */
 .voice-stop-btn {
-  background: #e74c3c;
-  color: white;
+  background: var(--voice-orange) !important;
+  color: white !important;
+  box-shadow: 0 4px 15px rgba(255, 107, 53, 0.3) !important;
 }
 
-.voice-stop-btn:hover,
-.voice-stop-btn:active {
-  background: #c0392b;
+.voice-stop-btn:hover {
+  background: var(--voice-orange-hover) !important;
   transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(192, 57, 43, 0.3);
+  box-shadow: 0 8px 25px rgba(255, 107, 53, 0.4) !important;
+  transition: all 0.2s ease;
+}
+
+.voice-stop-btn:active {
+  background: var(--voice-orange-hover) !important;
+  transform: translateY(0);
+}
+
+/* 비활성화된 버튼 스타일 */
+.voice-start-btn:disabled,
+.voice-stop-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none !important;
+  box-shadow: none !important;
 }
 
 /* 액션 버튼들 (2개) */
@@ -422,7 +414,7 @@
   box-shadow: 0 8px 25px rgba(44, 62, 80, 0.2);
 }
 
-/* 모바일 최적화 - JOBITS 아이콘 크기 조정 */
+/* 모바일 최적화 */
 @media (max-width: 768px) {
   .voice-modal-backdrop {
     padding: 16px;
@@ -452,16 +444,6 @@
   .voice-icon {
     width: 100px;
     height: 100px;
-  }
-  
-  .jobits-voice-image {
-    width: 56px !important;
-    height: 56px !important;
-  }
-  
-  .loading-spinner .jobits-voice-image {
-    width: 56px !important;
-    height: 56px !important;
   }
   
   .pulse-ring {
@@ -533,16 +515,6 @@
   .voice-icon {
     width: 90px;
     height: 90px;
-  }
-  
-  .jobits-voice-image {
-    width: 48px !important;
-    height: 48px !important;
-  }
-  
-  .loading-spinner .jobits-voice-image {
-    width: 48px !important;
-    height: 48px !important;
   }
   
   .voice-status {

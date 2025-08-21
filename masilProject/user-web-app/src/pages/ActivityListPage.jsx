@@ -9,6 +9,15 @@ export default function ActivityListPage() {
   const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showVoiceModal, setShowVoiceModal] = useState(false);
+  
+  // 추천 모드 상태 관리
+  const [isRecommendationMode, setIsRecommendationMode] = useState(false);
+  const [selectedTab, setSelectedTab] = useState('');
+  const [recommendationCount, setRecommendationCount] = useState(0);
+  const [recommendedJobs, setRecommendedJobs] = useState([]); // 추천된 일자리 목록 저장
+  
+  // 임시 사용자 ID (실제 구현에서는 로그인 정보에서 가져와야 함)
+  const userId = "f97c17bf-c304-48df-aa54-d77fa23f96ee";
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -62,24 +71,62 @@ export default function ActivityListPage() {
   const handleMicClick = () => {
     console.log('🎤 마이크 버튼 클릭됨');
     setShowVoiceModal(true);
+    setSelectedTab('voice');
   };
 
   // 음성 모달 닫기 핸들러
   const handleCloseVoiceModal = () => {
     console.log('🎤 음성 모달 닫기');
     setShowVoiceModal(false);
+    setSelectedTab('');
+  };
+
+  // Job있으 버튼 클릭 핸들러
+  const handleJobListClick = () => {
+    console.log('📋 Job있으 버튼 클릭됨 - AI 추천 모드 활성화');
+    console.log('🔍 사용할 사용자 ID:', userId);
+    setIsRecommendationMode(true);
+    setSelectedTab('list');
+  };
+
+  // 추천 완료 핸들러
+  const handleRecommendationComplete = (count, jobs = []) => {
+    setRecommendationCount(count);
+    setRecommendedJobs(jobs); // 추천된 일자리 목록 저장
+    console.log(`✅ AI 추천 완료: ${count}개의 일거리 발견`);
+    console.log('📊 추천된 일자리 목록:', jobs);
+  };
+
+  // 음성 모달에 전달할 excludeJobIds 생성
+  const getExcludeJobIds = () => {
+    return recommendedJobs.map(job => job.job_id);
   };
 
   return (
     <div className="activity-page-container">
       {/* 헤더 */}
       <div className="activity-header">
-        <h1 className="activity-title">추천 활동 목록</h1>
+        <h1 className="activity-title">
+          {isRecommendationMode 
+            ? `AI 추천 일거리${recommendationCount > 0 ? ` (${recommendationCount}개)` : ''}` 
+            : '추천 활동 목록'
+          }
+        </h1>
+        {isRecommendationMode && (
+          <p style={{ 
+            fontSize: '14px', 
+            color: '#666', 
+            margin: '8px 0 0 0',
+            textAlign: 'center'
+          }}>
+            🤖 사용자 맞춤 추천 결과입니다
+          </p>
+        )}
       </div>
 
       {/* 지도 영역 */}
       <div className="map-container">
-        {loading ? (
+        {loading && !isRecommendationMode ? (
           <div className="map-loading">
             <div style={{ textAlign: 'center', color: '#2C3E50' }}>
               <div style={{ fontSize: '48px', marginBottom: '16px' }}>🗺️</div>
@@ -91,6 +138,9 @@ export default function ActivityListPage() {
         ) : (
           <MapComponent 
             activities={activities}
+            isRecommendationMode={isRecommendationMode}
+            userId={userId}
+            onRecommendationComplete={handleRecommendationComplete}
           />
         )}
       </div>
@@ -98,12 +148,16 @@ export default function ActivityListPage() {
       {/* 하단 네비게이션 */}
       <BottomNavBar 
         onMicClick={handleMicClick}
-        initialSelected="" 
+        onJobListClick={handleJobListClick}
+        initialSelected={selectedTab} 
       />
 
       {/* 음성 모달 */}
       {showVoiceModal && (
-        <VoiceModal onClose={handleCloseVoiceModal} />
+        <VoiceModal 
+          onClose={handleCloseVoiceModal} 
+          excludeJobIds={getExcludeJobIds()}
+        />
       )}
     </div>
   );

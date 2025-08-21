@@ -71,14 +71,13 @@ export default HomePage;*/
 
 // src/pages/HomePage.jsx
 
-import React, { useEffect } from 'react'; // ✅ 추가: useEffect import
+import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './HomePage.css';
 
 const HomePage = () => {
   const navigate = useNavigate();
 
-  // ✅ 추가: 페이지 진입 시 상단 스크롤
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
@@ -94,10 +93,10 @@ const HomePage = () => {
   return (
     <div className="homepage-container page-container">
       <div className="logo-section">
+        <div className="logo-text-top">터치 한 번이면</div>
+        <div className="logo-text-bottom">내 근처 일거리 한눈에!</div>
         <img src="/Job있으.png" alt="로고" className="logo-image" />
       </div>
-      
-      
       
       <div className="button-section">
         <button 

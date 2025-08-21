@@ -78,6 +78,13 @@
   gap: 16px;
 }
 
+/* ✅ 추가: 구분선 스타일 */
+.section-divider {
+  height: 1px;
+  background-color: var(--border-color);
+  margin: 20px 0;
+}
+
 .auth-input,
 .auth-textarea {
   width: 100%;
@@ -220,6 +227,162 @@
   border-color: var(--accent-color);
 }
 
+/* ✅ 추가: 실내/실외 선호 버튼 스타일 */
+.inside-outside-level-group {
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.inside-outside-btn {
+  flex: 1;
+  padding: 16px; /* ✅ 수정: 터치 영역 확대 */
+  border: 2px solid var(--border-color);
+  border-radius: 8px;
+  background-color: white;
+  color: var(--text-primary);
+  font-size: 18px; /* ✅ 수정: 5060세대 고려 폰트 크기 증가 */
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-height: 52px; /* ✅ 추가: 터치 영역 보장 */
+}
+
+.inside-outside-btn:hover {
+  border-color: var(--primary-color);
+  background-color: rgba(44, 62, 80, 0.05);
+}
+
+.inside-outside-btn.selected {
+  background-color: var(--primary-color);
+  border-color: var(--primary-color);
+  color: white;
+}
+
+.inside-outside-btn.selected:hover,
+.inside-outside-btn.selected:active {
+  background-color: var(--accent-color);
+  border-color: var(--accent-color);
+}
+
+/* ✅ 추가: 이동 가능 시간 버튼 스타일 */
+.moving-level-group {
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.moving-btn {
+  flex: 1;
+  padding: 16px; /* ✅ 수정: 터치 영역 확대 */
+  border: 2px solid var(--border-color);
+  border-radius: 8px;
+  background-color: white;
+  color: var(--text-primary);
+  font-size: 18px; /* ✅ 수정: 5060세대 고려 폰트 크기 증가 */
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-height: 52px; /* ✅ 추가: 터치 영역 보장 */
+}
+
+.moving-btn:hover {
+  border-color: var(--primary-color);
+  background-color: rgba(44, 62, 80, 0.05);
+}
+
+.moving-btn.selected {
+  background-color: var(--primary-color);
+  border-color: var(--primary-color);
+  color: white;
+}
+
+.moving-btn.selected:hover,
+.moving-btn.selected:active {
+  background-color: var(--accent-color);
+  border-color: var(--accent-color);
+}
+
+/* ✅ 추가: 요일 버튼 그룹 스타일 (7개 균등 배치) */
+.day-group {
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.day-btn {
+  flex: 1;
+  padding: 16px 8px; /* ✅ 수정: 터치 영역 확대 */
+  border: 2px solid var(--border-color);
+  border-radius: 8px;
+  background-color: white;
+  color: var(--text-primary);
+  font-size: 16px; /* ✅ 수정: 5060세대 고려 폰트 크기 */
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-height: 52px; /* ✅ 추가: 터치 영역 보장 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.day-btn:hover {
+  border-color: var(--primary-color);
+  background-color: rgba(44, 62, 80, 0.05);
+}
+
+.day-btn.selected {
+  background-color: var(--primary-color);
+  border-color: var(--primary-color);
+  color: white;
+}
+
+.day-btn.selected:hover,
+.day-btn.selected:active {
+  background-color: var(--accent-color);
+  border-color: var(--accent-color);
+}
+
+/* ✅ 수정: 시간대 버튼 그룹 스타일 (3개 균등 배치) */
+.time-level-group {
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.time-btn {
+  flex: 1;
+  padding: 16px; /* ✅ 수정: 터치 영역 확대 */
+  border: 2px solid var(--border-color);
+  border-radius: 8px;
+  background-color: white;
+  color: var(--text-primary);
+  font-size: 18px; /* ✅ 수정: 5060세대 고려 폰트 크기 증가 */
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-height: 52px; /* ✅ 추가: 터치 영역 보장 */
+}
+
+.time-btn:hover {
+  border-color: var(--primary-color);
+  background-color: rgba(44, 62, 80, 0.05);
+}
+
+.time-btn.selected {
+  background-color: var(--primary-color);
+  border-color: var(--primary-color);
+  color: white;
+}
+
+.time-btn.selected:hover,
+.time-btn.selected:active {
+  background-color: var(--accent-color);
+  border-color: var(--accent-color);
+}
+
 .form-actions {
   display: flex;
   gap: 12px;
@@ -319,11 +482,161 @@
     font-size: 16px;
     min-height: 48px;
   }
-  
+
+  .inside-outside-level-group {
+    gap: 8px;
+  }
+
+  .inside-outside-btn {
+    padding: 14px;
+    font-size: 16px;
+    min-height: 48px;
+  }
+
+  .moving-level-group {
+    gap: 8px;
+  }
+
+  .moving-btn {
+    padding: 14px;
+    font-size: 16px;
+    min-height: 48px;
+  }
+
+  /* ✅ 추가: 모바일에서 요일 버튼 스타일 */
+  .day-group {
+    gap: 6px;
+  }
+
+  .day-btn {
+    padding: 12px 6px;
+    font-size: 14px;
+    min-height: 44px;
+  }
+
+  /* ✅ 추가: 모바일에서 시간대 버튼 스타일 */
+  .time-level-group {
+    gap: 8px;
+  }
+
+  .time-btn {
+    padding: 14px;
+    font-size: 16px;
+    min-height: 48px;
+  }
+
   .btn-outline-small,
   .btn-primary-small,
   .btn-primary-full {
     height: 52px;
     font-size: 16px;
+  }
+}
+
+/* 시간표 스타일 - AuthForms.css에 추가할 내용 */
+
+.schedule-table {
+  margin: 20px 0;
+  overflow-x: auto;
+}
+
+.time-schedule-table {
+  width: 100%;
+  border-collapse: collapse;
+  background-color: #fff;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.time-schedule-table th,
+.time-schedule-table td {
+  padding: 12px 8px;
+  text-align: center;
+  border: 1px solid #e0e0e0;
+}
+
+.time-schedule-table th {
+  background-color: #f8f9fa;
+  font-weight: 600;
+  font-size: 14px;
+  color: #333;
+}
+
+.day-header {
+  background-color: #f1f3f5;
+  min-width: 50px;
+}
+
+.time-label {
+  background-color: #f8f9fa;
+  font-weight: 500;
+  font-size: 13px;
+  color: #555;
+  min-width: 60px;
+}
+
+.time-cell {
+  padding: 8px;
+}
+
+.time-slot-btn {
+  width: 32px;
+  height: 32px;
+  border: 2px solid #ddd;
+  border-radius: 6px;
+  background-color: #fff;
+  color: #666;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto;
+}
+
+.time-slot-btn:hover {
+  border-color: #007bff;
+  background-color: #f0f8ff;
+}
+
+.time-slot-btn.selected {
+  background-color: #007bff;
+  border-color: #007bff;
+  color: white;
+  font-weight: bold;
+}
+
+.time-slot-btn.selected:hover {
+  background-color: #0056b3;
+  border-color: #0056b3;
+}
+
+/* 모바일 반응형 */
+@media (max-width: 768px) {
+  .schedule-table {
+    margin: 15px -10px;
+  }
+  
+  .time-schedule-table th,
+  .time-schedule-table td {
+    padding: 8px 4px;
+    font-size: 12px;
+  }
+  
+  .time-slot-btn {
+    width: 28px;
+    height: 28px;
+    font-size: 12px;
+  }
+  
+  .day-header {
+    min-width: 40px;
+  }
+  
+  .time-label {
+    min-width: 50px;
+    font-size: 12px;
   }
 }

@@ -135,7 +135,6 @@
 
 /* src/pages/HomePage.css */
 
-/* ✅ 추가: Pretendard 폰트 import */
 @import url('https://cdn.jsdelivr.net/gh/Project-Noonnu/noonnu_font@1.1/Pretendard-Regular/font.css');
 
 :root {
@@ -154,12 +153,29 @@
   align-items: center;
   min-height: 100vh;
   padding: 40px 20px;
-  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif; /* ✅ 추가: 폰트 적용 */
+  background: white;
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
 }
 
 .logo-section {
   margin-bottom: 60px;
+  text-align: center;
+  width: 100%;
+  max-width: 280px;
+}
+
+.logo-text-top {
+  font-size: 18px;
+  font-weight: 400;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+}
+
+.logo-text-bottom {
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--primary-color);
+  margin-bottom: 20px;
 }
 
 .logo-circle {
@@ -174,15 +190,15 @@
   border: 3px solid var(--primary-color);
 }
 
-/* ✅ 수정: 로고 이미지 크기 증가 */
 .logo-image {
-  width: 120px;
-  height: 120px;
+  width: 100%;
+  max-width: 280px;
+  height: auto;
   object-fit: contain;
 }
 
 .logo-text-fallback {
-  font-size: 18px; /* ✅ 수정: 5060세대 고려 폰트 크기 증가 */
+  font-size: 18px;
   font-weight: bold;
   color: var(--primary-color);
   text-align: center;
@@ -194,7 +210,7 @@
 }
 
 .project-title {
-  font-size: 38px; /* ✅ 수정: 5060세대 고려 폰트 크기 증가 */
+  font-size: 38px;
   font-weight: 700;
   color: var(--primary-color);
   margin-bottom: 12px;
@@ -202,7 +218,7 @@
 }
 
 .project-subtitle {
-  font-size: 20px; /* ✅ 수정: 5060세대 고려 폰트 크기 증가 */
+  font-size: 20px;
   color: var(--text-secondary);
   font-weight: 400;
 }
@@ -215,11 +231,10 @@
   max-width: 280px;
 }
 
-
 .signup-btn {
   width: 100%;
-  height: 56px; /* ✅ 수정: 터치 영역 확대 */
-  font-size: 18px; /* ✅ 수정: 5060세대 고려 폰트 크기 증가 */
+  height: 56px;
+  font-size: 18px;
   font-weight: 600;
   border-radius: 12px;
   border: none;
@@ -229,8 +244,8 @@
 
 .login-btn {
   width: 100%;
-  height: 56px; /* ✅ 수정: 터치 영역 확대 */
-  font-size: 18px; /* ✅ 수정: 5060세대 고려 폰트 크기 증가 */
+  height: 56px;
+  font-size: 18px;
   font-weight: 600;
   border-radius: 12px;
   border: none;
@@ -249,7 +264,6 @@
   color: white;
 }
 
-/* ✅ 추가: 반응형 호버/액티브 효과 */
 .signup-btn:hover,
 .signup-btn:active {
   background-color: var(--accent-color);
@@ -278,15 +292,23 @@
     font-size: 18px;
   }
   
-  /* ✅ 수정: 모바일에서도 로고 크기 증가 */
   .logo-circle {
     width: 120px;
     height: 120px;
   }
   
   .logo-image {
-    width: 100px;
-    height: 100px;
+    width: 100%;
+    max-width: 280px;
+    height: auto;
+  }
+  
+  .logo-text-top {
+    font-size: 16px;
+  }
+  
+  .logo-text-bottom {
+    font-size: 20px;
   }
   
   .signup-btn,

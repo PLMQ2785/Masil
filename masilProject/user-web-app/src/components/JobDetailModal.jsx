@@ -2,7 +2,7 @@
 import React from 'react';
 import './JobDetailModal.css';
 
-export default function JobDetailModal({ job, onClose, isVisible }) {
+export default function JobDetailModal({ job, onClose, isVisible, showRecommendationReason = false }) {
   const formatWage = (wage) => {
     return wage ? `시급 ${wage.toLocaleString()}원` : '급여 협의';
   };
@@ -131,15 +131,15 @@ export default function JobDetailModal({ job, onClose, isVisible }) {
             </div>
           )}
 
-          {/* 추천 이유 섹션 */}
-          <div className="job-description-section">
-            <h3 className="job-description-title">💡 추천 이유</h3>
-            <div className="job-description-content">
-              사용자의 선호 키워드인 '실내'와 관련된 청소년 시설 지원 업무입니다. 시간대와 거리도 적절하여 적합한 직무입니다.
+          {/* 추천 이유 섹션 - showRecommendationReason이 true이고 reason이 있을 때만 표시 */}
+          {showRecommendationReason && job.reason && (
+            <div className="job-description-section">
+              <h3 className="job-description-title">💡 추천 이유</h3>
+              <div className="job-description-content">
+                {job.reason}
+              </div>
             </div>
-          </div>
-
-          
+          )}
         </div>
 
         {/* 하단 버튼 영역 */}
@@ -151,8 +151,6 @@ export default function JobDetailModal({ job, onClose, isVisible }) {
             닫기
           </button>
         </div>
-
-
       </div>
     </div>
   );
