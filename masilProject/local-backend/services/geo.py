@@ -18,3 +18,4 @@ def estimate_travel_min(distance_km: float) -> int:
     elif distance_km <= 10: speed_kmh, penalty = 18.0, 10
     else: speed_kmh, penalty = 30.0, 8
     return int(round((distance_km / max(speed_kmh, 1e-6)) * 60 + penalty))
+
