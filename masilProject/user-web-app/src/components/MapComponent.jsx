@@ -224,8 +224,9 @@ export default function MapComponent({ isRecommendationMode = false, userId = nu
       const markerPosition = new window.naver.maps.LatLng(job.job_latitude, job.job_longitude);
       
       // 추천 모드일 때는 빨간색, 일반 모드일 때는 녹색
-      const markerColor = isRecommendationMode ? '#FF6B6B' : '#0028db82';
+      const markerColor = isRecommendationMode ? '#ff0000ff' : 'rgba(8, 0, 255, 1)';
       
+      /*
       const marker = new window.naver.maps.Marker({
         position: markerPosition,
         map: naverMap,
@@ -258,7 +259,37 @@ export default function MapComponent({ isRecommendationMode = false, userId = nu
           `,
           anchor: new window.naver.maps.Point(20, 50)
         }
-      });
+      });*/
+
+      const marker = new window.naver.maps.Marker({
+    position: markerPosition,
+    map: naverMap,
+    title: job.title,
+    icon: {
+        content: `
+            <div style="
+                position: relative;
+                cursor: pointer;
+                transition: all 0.3s ease;
+            " onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'">
+                <svg width="60" height="75" viewBox="0 0 40 50" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <ellipse cx="20" cy="47" rx="8" ry="3" fill="rgba(1, 7, 13, 0.2)"/>
+                    
+                    <path d="M20 2C11.163 2 4 9.163 4 18c0 12 16 28 16 28s16-16 16-28c0-8.837-7.163-16-16-16z" 
+                          fill="${markerColor}" 
+                          stroke="white" 
+                          stroke-width="2"/>
+                    
+                    <circle cx="20" cy="18" r="12" fill="white"/>
+                    <circle cx="20" cy="18" r="10.5" fill="#2C3E50"/>
+                    
+                    <ellipse cx="17" cy="15" rx="2" ry="3" fill="rgba(255, 255, 255, 0.3)"/>
+                </svg>
+            </div>
+        `,
+        anchor: new window.naver.maps.Point(30, 75) // 마커의 크기에 맞춰 anchor 위치 조정
+    }
+});
 
       // 🔍 마커 클릭 이벤트 - 상세정보 조회 및 모달 표시
       window.naver.maps.Event.addListener(marker, 'click', async () => {

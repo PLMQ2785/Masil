@@ -12,6 +12,10 @@
   --voice-blur-backdrop: rgba(0, 0, 0, 0.7);
   --voice-orange: #ff6b35; /* 오렌지 색상 */
   --voice-orange-hover: #e55a2b; /* 오렌지 호버 색상 */
+  --voice-success-green: #27AE60; /* 성공 색상 */
+  --voice-success-light: #E8F8F0; /* 성공 배경색 */
+  --voice-transcribing-color: #3498DB; /* 텍스트 변환 중 색상 (파란색) */
+  --voice-transcribing-light: #EBF3FD; /* 텍스트 변환 중 배경색 */
 }
 
 /* Pretendard 폰트 적용 */
@@ -71,6 +75,12 @@
   margin: auto;
 }
 
+/* 추천 상태일 때 컨테이너 높이 조정 */
+.voice-modal-container.recommendation-mode {
+  min-height: 580px;
+  max-height: 650px;
+}
+
 @keyframes voiceSlideUp {
   from {
     opacity: 0;
@@ -123,6 +133,12 @@
   text-align: center;
 }
 
+/* 추천 모드일 때 패딩 조정 */
+.voice-content.recommendation-mode {
+  padding: 20px 24px;
+  justify-content: flex-start;
+}
+
 /* 마이크 아이콘 컨테이너 */
 .voice-icon-container {
   position: relative;
@@ -141,7 +157,6 @@
   justify-content: center;
   position: relative;
   z-index: 2;
-  /* 트랜지션 제거하여 즉시 색상 변경 */
 }
 
 /* 기본 상태 (준비) */
@@ -165,6 +180,25 @@
   }
   50% {
     transform: scale(1.05);
+  }
+}
+
+/* 🆕 텍스트 변환 중 상태 - 파란색 */
+.voice-icon-container.transcribing .voice-icon {
+  background: var(--voice-transcribing-color) !important;
+  color: white !important;
+  box-shadow: 0 8px 25px rgba(52, 152, 219, 0.3) !important;
+  animation: voiceTextPulse 1.2s ease-in-out infinite;
+}
+
+@keyframes voiceTextPulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.03);
+    opacity: 0.8;
   }
 }
 
@@ -223,26 +257,109 @@
 }
 
 .voice-status-title {
-  font-size: 24px; /* 5060세대 고려 폰트 크기 */
+  font-size: 24px;
   font-weight: 700;
   color: var(--voice-text-primary);
   margin: 0 0 20px 0;
   line-height: 1.3;
 }
 
+/* 추천 모드 상태 제목 스타일 개선 */
+.voice-status-title.recommendation-title {
+  font-size: 29px; /* 22px → 28px로 확대 */
+  font-weight: 800;
+  color: var(--voice-success-green);
+  margin: 0 0 24px 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+/* 성공 아이콘 추가 */
+.recommendation-success-icon {
+  width: 28px;
+  height: 28px;
+  background: var(--voice-success-green);
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 16px;
+  animation: successBounce 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+@keyframes successBounce {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* 🆕 추천 결과 컨테이너 (텍스트 + 추천 박스) */
+.recommendation-result-container {
+  width: 100%;
+  max-width: 340px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* 🆕 추천 단계에서의 텍스트 박스 (더 작고 간결하게) */
+.voice-transcript.recommendation-transcript {
+  background: var(--voice-transcribing-light);
+  border: 1px solid var(--voice-transcribing-color);
+  padding: 12px 16px;
+  border-radius: 12px;
+  margin-top: 0;
+  animation: transcriptFadeIn 0.5s ease-out;
+}
+
+.voice-transcript.recommendation-transcript p {
+  font-size: 15px;
+  color: var(--voice-transcribing-color);
+  margin: 0;
+  line-height: 1.4;
+  font-style: italic;
+  font-weight: 500;
+}
+
+/* 기존 음성 인식 결과 텍스트 박스 (transcribing 단계용) */
 .voice-transcript {
-  background: #f8f9fa;
+  background: var(--voice-transcribing-light);
+  border: 2px solid var(--voice-transcribing-color);
   padding: 20px;
   border-radius: 16px;
   margin-top: 24px;
+  animation: transcriptFadeIn 0.5s ease-out;
+}
+
+@keyframes transcriptFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .voice-transcript p {
-  font-size: 18px; /* 5060세대 고려 폰트 크기 */
-  color: var(--voice-text-secondary);
+  font-size: 18px;
+  color: var(--voice-transcribing-color);
   margin: 0;
   line-height: 1.5;
   font-style: italic;
+  font-weight: 600;
 }
 
 /* 오류 메시지 스타일 */
@@ -261,23 +378,121 @@
   line-height: 1.5;
 }
 
-/* 추천 결과 박스 스타일 */
+/* 개선된 추천 결과 박스 스타일 */
 .recommendation-box {
-  background: #f8f9fa;
-  border: 2px solid var(--voice-border-color);
-  border-radius: 16px;
-  padding: 24px;
-  margin-top: 24px;
+  background: linear-gradient(135deg, var(--voice-success-light) 0%, #f8fffe 100%);
+  border: 2px solid var(--voice-success-green);
+  border-radius: 20px;
+  padding: 28px 24px;
+  margin-top: 0; /* recommendation-result-container에서 gap으로 관리 */
   width: 100%;
-  max-width: 320px;
-  box-shadow: 0 4px 12px rgba(44, 62, 80, 0.1);
-  animation: recommendationFadeIn 0.5s ease-out;
+  box-shadow: 
+    0 8px 25px rgba(39, 174, 96, 0.15),
+    0 3px 10px rgba(39, 174, 96, 0.1);
+  animation: recommendationFadeIn 0.6s ease-out;
+  position: relative;
+  overflow: hidden;
+}
+
+/* 배경 데코레이션 */
+.recommendation-box::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  right: -50%;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle, rgba(39, 174, 96, 0.08) 0%, transparent 70%);
+  animation: decorationFloat 3s ease-in-out infinite;
+}
+
+@keyframes decorationFloat {
+  0%, 100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  50% {
+    transform: translate(-10px, -5px) rotate(5deg);
+  }
 }
 
 @keyframes recommendationFadeIn {
   from {
     opacity: 0;
-    transform: translateY(20px);
+    transform: translateY(30px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* 추천 직업 제목 개선 */
+.recommendation-job-title {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--voice-primary-color);
+  margin: 0 0 16px 0;
+  line-height: 1.3;
+  position: relative;
+  z-index: 1;
+  text-shadow: 0 1px 2px rgba(44, 62, 80, 0.1);
+}
+
+/* 직업 설명 개선 */
+.recommendation-job-description {
+  font-size: 16px;
+  color: var(--voice-text-secondary);
+  margin: 0 0 20px 0;
+  line-height: 1.6;
+  position: relative;
+  z-index: 1;
+}
+
+/* 추천 정보 태그 추가 */
+.recommendation-tag {
+  display: inline-block;
+  background: var(--voice-success-green);
+  color: white;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 20px;
+  margin-top: 8px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  animation: tagSlideIn 0.8s ease-out 0.3s both;
+}
+
+@keyframes tagSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* 추천 인사이트 박스 추가 */
+.recommendation-insight {
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(39, 174, 96, 0.2);
+  border-radius: 12px;
+  padding: 16px;
+  margin-top: 16px;
+  font-size: 14px;
+  color: var(--voice-text-secondary);
+  line-height: 1.5;
+  position: relative;
+  z-index: 1;
+  animation: insightFadeIn 1s ease-out 0.5s both;
+}
+
+@keyframes insightFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
   }
   to {
     opacity: 1;
@@ -285,19 +500,10 @@
   }
 }
 
-.recommendation-job-title {
-  font-size: 20px;
-  font-weight: 700;
-  color: var(--voice-primary-color);
-  margin: 0 0 16px 0;
-  line-height: 1.3;
-}
-
-.recommendation-job-description {
+.recommendation-insight::before {
+  content: '💡';
   font-size: 16px;
-  color: var(--voice-text-secondary);
-  margin: 0;
-  line-height: 1.5;
+  margin-right: 8px;
 }
 
 /* 컨트롤 버튼 영역 */
@@ -313,13 +519,12 @@
 .voice-stop-btn {
   width: 100%;
   height: 56px;
-  font-size: 18px; /* 5060세대 고려 폰트 크기 */
+  font-size: 18px;
   font-weight: 700;
   border: none;
   border-radius: 12px;
   cursor: pointer;
   font-family: inherit;
-  /* 트랜지션 제거하여 즉시 색상 변경 */
 }
 
 /* 시작 버튼 - 기본 색상 */
@@ -378,7 +583,7 @@
 .voice-close-btn {
   flex: 1;
   height: 56px;
-  font-size: 18px; /* 5060세대 고려 폰트 크기 */
+  font-size: 30px; /* 18px → 20px로 확대 */
   font-weight: 700;
   border: none;
   border-radius: 12px;
@@ -405,6 +610,7 @@
 .voice-close-btn {
   background: var(--voice-primary-color);
   color: white;
+  box-shadow: 0 4px 15px rgba(44, 62, 80, 0.3);
 }
 
 .voice-close-btn:hover,
@@ -427,6 +633,11 @@
     border-radius: 20px;
   }
   
+  .voice-modal-container.recommendation-mode {
+    min-height: 520px;
+    max-height: 85vh;
+  }
+  
   .voice-modal-header {
     padding: 20px 20px 0;
   }
@@ -439,6 +650,10 @@
   
   .voice-content {
     padding: 32px 20px;
+  }
+  
+  .voice-content.recommendation-mode {
+    padding: 16px 20px;
   }
   
   .voice-icon {
@@ -461,24 +676,36 @@
   }
   
   .voice-status-title {
-    font-size: 22px;
+    font-size: 30px;
   }
   
   .voice-transcript p {
     font-size: 17px;
   }
   
-  .recommendation-box {
-    padding: 20px;
+  .recommendation-result-container {
     max-width: 280px;
   }
   
+  .voice-transcript.recommendation-transcript p {
+    font-size: 14px;
+  }
+  
+  .recommendation-box {
+    padding: 24px 20px;
+  }
+  
   .recommendation-job-title {
-    font-size: 19px;
+    font-size: 20px;
   }
   
   .recommendation-job-description {
     font-size: 15px;
+  }
+  
+  .recommendation-insight {
+    font-size: 13px;
+    padding: 14px;
   }
   
   .voice-controls {
@@ -490,7 +717,7 @@
   .voice-retry-btn,
   .voice-close-btn {
     height: 52px;
-    font-size: 17px;
+    font-size: 19px; /* 17px → 19px로 확대 */
   }
 }
 
@@ -504,12 +731,20 @@
     min-height: 400px;
   }
   
+  .voice-modal-container.recommendation-mode {
+    min-height: 480px;
+  }
+  
   .voice-modal-header {
     padding: 16px 16px 0;
   }
   
   .voice-content {
     padding: 28px 16px;
+  }
+  
+  .voice-content.recommendation-mode {
+    padding: 12px 16px;
   }
   
   .voice-icon {
@@ -533,9 +768,20 @@
     font-size: 16px;
   }
   
-  .recommendation-box {
-    padding: 18px;
+  .recommendation-result-container {
     max-width: 260px;
+  }
+  
+  .voice-transcript.recommendation-transcript {
+    padding: 10px 14px;
+  }
+  
+  .voice-transcript.recommendation-transcript p {
+    font-size: 13px;
+  }
+  
+  .recommendation-box {
+    padding: 20px 16px;
   }
   
   .recommendation-job-title {
@@ -547,6 +793,11 @@
     font-size: 14px;
   }
   
+  .recommendation-insight {
+    font-size: 12px;
+    padding: 12px;
+  }
+  
   .voice-controls {
     padding: 0 16px 24px;
   }
@@ -556,6 +807,6 @@
   .voice-retry-btn,
   .voice-close-btn {
     height: 48px;
-    font-size: 16px;
+    font-size: 26px; /* 16px → 18px로 확대 */
   }
 }

@@ -62,7 +62,7 @@ export default function SignUpForm() {
   );
 }*/
 
-// src/components/SignUpForm.jsx - 수정버전
+// src/components/SignUpForm.jsx - 하이라이트 효과가 적용된 섹션 제목
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 import './AuthForms.css';
@@ -282,7 +282,8 @@ export default function SignUpForm() {
       <form className="auth-form signup-form" onSubmit={handleSignUp}>
         
         <div className="form-section">
-          <h2 className="section-title">계정 정보</h2>
+          {/* ✅ 수정: 하이라이트 효과를 위한 data-step 속성 추가 */}
+          <h2 className="section-title" data-step="Step 1">계정 정보</h2>
           <input
             type="tel"
             placeholder="전화번호 ('-' 제외)" 
@@ -318,7 +319,8 @@ export default function SignUpForm() {
         <div className="section-divider"></div>
 
         <div className="form-section">
-          <h2 className="section-title">기본 정보</h2>
+          {/* ✅ 수정: 하이라이트 효과를 위한 data-step 속성 추가 */}
+          <h2 className="section-title" data-step="Step 2">기본 정보</h2>
           <input
             type="text"
             placeholder="닉네임"
@@ -365,7 +367,8 @@ export default function SignUpForm() {
         <div className="section-divider"></div>
 
         <div className="form-section">
-          <h2 className="section-title">1단계 - 기본 설정</h2>
+          {/* ✅ 수정: 하이라이트 효과를 위한 data-step 속성 추가 */}
+          <h2 className="section-title" data-step="1단계">1단계 - 기본 설정</h2>
           <h3 className="section-title">체력 수준</h3>
           <div className="physical-level-group">
             {physicalLevels.map((level) => (
@@ -416,7 +419,8 @@ export default function SignUpForm() {
         <div className="section-divider"></div>
 
         <div className="form-section">
-          <h2 className="section-title">2단계 - 가능 시간</h2>
+          {/* ✅ 수정: 하이라이트 효과를 위한 data-step 속성 추가 */}
+          <h2 className="section-title" data-step="2단계">2단계 - 가능 시간</h2>
 
           {/* 표 형식의 요일별 시간대 선택 */}
           <div className="schedule-table">
@@ -456,7 +460,8 @@ export default function SignUpForm() {
         <div className="section-divider"></div>
 
         <div className="form-section">
-          <h2 className="section-title">3단계 - 내가 할 수 있는 일</h2>
+          {/* ✅ 수정: 하이라이트 효과를 위한 data-step 속성 추가 */}
+          <h2 className="section-title" data-step="3단계">3단계 - <br />내가 할 수 있는 일</h2>
           <p className="section-subtitle">복수 선택 가능</p>
 
           <div className="interest-grid">

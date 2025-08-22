@@ -3,16 +3,17 @@ import React, { useState, useEffect, useRef } from 'react';
 import ApiService from '../services/ApiService';
 import './VoiceModal.css';
 
-export default function VoiceModal({ onClose, excludeJobIds = [] }) {
+export default function VoiceModal({ onClose, excludeJobIds = [], userId }) {
   const [isRecording, setIsRecording] = useState(false);
   const [transcript, setTranscript] = useState('');
-  const [phase, setPhase] = useState('ready'); // 'ready', 'recording', 'processing', 'complete', 'recommendation'
+  const [phase, setPhase] = useState('ready'); // 'ready', 'recording', 'transcribing', 'processing', 'complete', 'recommendation'
   const [recommendedJob, setRecommendedJob] = useState(null);
   const [error, setError] = useState(null);
   
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
   const streamRef = useRef(null);
+  const audioDataRef = useRef(null); // 음성 데이터를 저장해서 재사용
 
   const handleBackdropClick = (e) => {
     if (e.target === e.currentTarget) {
@@ -56,18 +57,28 @@ export default function VoiceModal({ onClose, excludeJobIds = [] }) {
           type: 'audio/webm;codecs=opus' 
         });
         
-        await processAudioRecording(audioBlob);
+        // 음성 데이터 저장
+        audioDataRef.current = audioBlob;
+        
+        // 먼저 STT 처리
+        await processSTT(audioBlob);
       };
 
       return true;
     } catch (error) {
-      console.error('❌ 마이크 접근 실패:', error);
+      console.error('⚠️ 마이크 접근 실패:', error);
       setError('마이크 접근 권한이 필요합니다.');
       return false;
     }
   };
 
   const startRecording = async () => {
+    // 사용자 ID 체크
+    if (!userId) {
+      setError('사용자 정보를 확인할 수 없습니다. 다시 로그인해주세요.');
+      return;
+    }
+
     setError(null);
     
     const initialized = await initializeMediaRecorder();
@@ -78,12 +89,12 @@ export default function VoiceModal({ onClose, excludeJobIds = [] }) {
     setTranscript('');
     
     mediaRecorderRef.current.start();
-    console.log('🎤 음성 녹음 시작...');
+    console.log('🎤 음성 녹음 시작... (사용자 ID:', userId, ')');
   };
 
   const stopRecording = () => {
     if (mediaRecorderRef.current && isRecording) {
-      setPhase('processing');
+      setPhase('transcribing'); // 처리 중 → 텍스트 변환 중으로 변경
       setIsRecording(false);
       
       mediaRecorderRef.current.stop();
@@ -97,21 +108,61 @@ export default function VoiceModal({ onClose, excludeJobIds = [] }) {
     }
   };
 
-  const processAudioRecording = async (audioBlob) => {
+  // 🆕 STT만 처리하는 함수
+  const processSTT = async (audioBlob) => {
     try {
-      console.log('📤 음성 데이터 처리 시작...');
+      console.log('🔤 음성을 텍스트로 변환 중...');
       
-      // FormData 생성
+      // FormData 생성 (STT용)
       const formData = new FormData();
       formData.append('audio_file', audioBlob, 'recording.webm');
-      formData.append('user_id', 'f97c17bf-c304-48df-aa54-d77fa23f96ee'); // 임시 사용자 ID
+
+      // STT API 호출
+      const response = await fetch('https://jobisbe.ngrok.app/api/stt', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error(`STT HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      console.log('✅ STT 변환 완료:', result);
+
+      // 변환된 텍스트 설정
+      const transcribedText = result.text || '음성을 인식하지 못했습니다.';
+      setTranscript(transcribedText);
+      
+      // 잠시 텍스트를 보여준 후 추천 과정 시작
+      setTimeout(() => {
+        processRecommendation(transcribedText);
+      }, 2000); // 2초간 텍스트 표시
+
+    } catch (error) {
+      console.error('⚠️ STT 처리 실패:', error);
+      setError('음성 인식에 실패했습니다. 다시 시도해주세요.');
+      setPhase('ready');
+    }
+  };
+
+  // 🆕 추천 처리 함수 (기존 processAudioRecording에서 분리)
+  const processRecommendation = async (transcribedText) => {
+    try {
+      console.log('🤖 일거리 추천 처리 시작... (사용자 ID:', userId, ')');
+      setPhase('processing');
+      
+      // FormData 생성 (추천용)
+      const formData = new FormData();
+      formData.append('audio_file', audioDataRef.current, 'recording.webm');
+      formData.append('user_id', userId); // 동적 사용자 ID 사용
       
       // excludeJobIds가 있다면 추가
       if (excludeJobIds && excludeJobIds.length > 0) {
         formData.append('exclude_ids', excludeJobIds.join(','));
       }
 
-      // API 호출
+      // 음성 추천 API 호출
       const response = await fetch('https://jobisbe.ngrok.app/api/recommend-voice', {
         method: 'POST',
         body: formData,
@@ -122,23 +173,22 @@ export default function VoiceModal({ onClose, excludeJobIds = [] }) {
       }
 
       const result = await response.json();
-      console.log('✅ 음성 처리 완료:', result);
+      console.log('✅ 음성 추천 완료:', result);
 
-      // 음성 인식 결과 설정
+      // 추천 결과 처리
       if (result.jobs && result.jobs.length > 0) {
-        const topJob = result.jobs[0]; // 첫 번째 추천 일자리
+        const topJob = result.jobs[0]; // 첫 번째 추천 일거리
         setRecommendedJob(topJob);
-        setTranscript(result.query || '음성 인식이 완료되었습니다.');
         setPhase('recommendation');
+        // ⚠️ 주의: transcript는 여기서 덮어쓰지 않고 유지합니다
       } else {
-        setTranscript(result.query || '음성 인식이 완료되었습니다.');
         setPhase('complete');
         setError('추천할 수 있는 일자리를 찾지 못했습니다.');
       }
 
     } catch (error) {
-      console.error('❌ 음성 처리 실패:', error);
-      setError('음성 처리 중 오류가 발생했습니다. 다시 시도해주세요.');
+      console.error('⚠️ 추천 처리 실패:', error);
+      setError('일거리 추천 중 오류가 발생했습니다. 다시 시도해주세요.');
       setPhase('ready');
     }
   };
@@ -149,6 +199,7 @@ export default function VoiceModal({ onClose, excludeJobIds = [] }) {
     setIsRecording(false);
     setRecommendedJob(null);
     setError(null);
+    audioDataRef.current = null;
     
     // 리소스 정리
     if (streamRef.current) {
@@ -177,8 +228,10 @@ export default function VoiceModal({ onClose, excludeJobIds = [] }) {
         return '편하게 말씀해주세요';
       case 'recording':
         return '듣고 있습니다...';
+      case 'transcribing':
+        return '말씀하신 내용';
       case 'processing':
-        return '처리 중...';
+        return '일거리 찾는 중...';
       case 'complete':
         return '음성 인식 완료';
       case 'recommendation':
@@ -217,9 +270,60 @@ export default function VoiceModal({ onClose, excludeJobIds = [] }) {
     );
   };
 
+  // 추천 인사이트 메시지 생성
+  const getRecommendationInsight = () => {
+    if (!recommendedJob) return null;
+    
+    const insights = [
+      "당신의 관심사와 경험에 기반한 맞춤 추천입니다.",
+      "현재 시장에서 수요가 높은 분야의 일자리입니다.",
+      "당신의 스킬과 잘 매치되는 포지션입니다.",
+      "성장 가능성이 높은 직무로 추천드립니다."
+    ];
+    
+    return insights[Math.floor(Math.random() * insights.length)];
+  };
+
+  // 사용자 ID가 없는 경우 에러 표시
+  if (!userId) {
+    return (
+      <div className="voice-modal-backdrop" onClick={handleBackdropClick}>
+        <div className="voice-modal-container">
+          <div className="voice-modal-header">
+            <button 
+              className="voice-modal-close" 
+              onClick={onClose}
+              aria-label="음성 모달 닫기"
+            >
+              ✕
+            </button>
+          </div>
+          <div className="voice-content">
+            <div style={{
+              textAlign: 'center',
+              padding: '40px 20px',
+              color: '#e74c3c'
+            }}>
+              <div style={{ fontSize: '48px', marginBottom: '16px' }}>⚠️</div>
+              <h2>사용자 정보 오류</h2>
+              <p>로그인 정보를 확인할 수 없습니다.<br />다시 로그인해주세요.</p>
+              <button 
+                className="voice-close-btn" 
+                onClick={onClose}
+                style={{ marginTop: '20px' }}
+              >
+                닫기
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="voice-modal-backdrop" onClick={handleBackdropClick}>
-      <div className="voice-modal-container">
+      <div className={`voice-modal-container ${phase === 'recommendation' ? 'recommendation-mode' : ''}`}>
         {/* 모달 헤더 */}
         <div className="voice-modal-header">
           <button 
@@ -232,7 +336,7 @@ export default function VoiceModal({ onClose, excludeJobIds = [] }) {
         </div>
 
         {/* 음성 입력 메인 영역 */}
-        <div className="voice-content">
+        <div className={`voice-content ${phase === 'recommendation' ? 'recommendation-mode' : ''}`}>
           {/* 추천 결과 단계가 아닐 때만 마이크 아이콘 영역 표시 */}
           {phase !== 'recommendation' && (
             <div className={`voice-icon-container ${phase}`}>
@@ -246,7 +350,14 @@ export default function VoiceModal({ onClose, excludeJobIds = [] }) {
 
           {/* 상태 텍스트 */}
           <div className="voice-status">
-            <h2 className="voice-status-title">{getStatusText()}</h2>
+            <h2 className={`voice-status-title ${phase === 'recommendation' ? 'recommendation-title' : ''}`}>
+              {phase === 'recommendation' && (
+                <div className="recommendation-success-icon">
+                  ✓
+                </div>
+              )}
+              {getStatusText()}
+            </h2>
             
             {/* 에러 메시지 표시 */}
             {error && (
@@ -264,17 +375,27 @@ export default function VoiceModal({ onClose, excludeJobIds = [] }) {
               </div>
             )}
             
-            {/* 추천 결과 단계일 때 추천 박스 표시 */}
+            {/* 🆕 추천 결과 단계일 때 구조 변경 */}
             {phase === 'recommendation' && recommendedJob ? (
-              <div className="recommendation-box">
-                <h3 className="recommendation-job-title">{recommendedJob.title}</h3>
-                <p className="recommendation-job-description">
-                  {recommendedJob.description || '상세 내용은 지도에서 확인하실 수 있습니다.'}
-                </p>
+              <div className="recommendation-result-container">
+                {/* 1️⃣ 먼저 변환된 텍스트 표시 */}
+                {transcript && (
+                  <div className="voice-transcript recommendation-transcript">
+                    <p>"{transcript}"</p>
+                  </div>
+                )}
+                
+                {/* 2️⃣ 그 다음 추천 일거리 정보 표시 */}
+                <div className="recommendation-box">
+                  <h3 className="recommendation-job-title">{recommendedJob.title}</h3>
+                  <p className="recommendation-job-description">
+                    {recommendedJob.reason || '상세 내용은 지도에서 확인하실 수 있습니다.'}
+                  </p>
+                </div>
               </div>
             ) : (
-              // 음성 인식 결과 표시
-              transcript && phase !== 'recommendation' && (
+              // 기존 로직: transcribing, processing 단계에서만 텍스트 표시
+              transcript && (phase === 'transcribing' || phase === 'processing') && (
                 <div className="voice-transcript">
                   <p>"{transcript}"</p>
                 </div>
@@ -297,7 +418,7 @@ export default function VoiceModal({ onClose, excludeJobIds = [] }) {
             </button>
           )}
           
-          {(phase === 'processing' || phase === 'complete' || phase === 'recommendation') && (
+          {(phase === 'transcribing' || phase === 'processing' || phase === 'complete' || phase === 'recommendation') && (
             <div className="voice-action-buttons">
               <button className="voice-retry-btn" onClick={resetVoice}>
                 다시 시도

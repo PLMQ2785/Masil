@@ -1,4 +1,4 @@
-/* src/components/AuthForms.css */
+/* src/components/AuthForms.css - 5060세대를 위한 폰트 크기 개선 */
 
 /* ✅ 추가: Pretendard 폰트 및 글로벌 설정 */
 @import url('https://cdn.jsdelivr.net/gh/Project-Noonnu/noonnu_font@1.1/Pretendard-Regular/font.css');
@@ -11,6 +11,13 @@
   --text-primary: #333;
   --text-secondary: #666;
   --border-color: #e0e0e0;
+  
+  /* 5060세대를 위한 폰트 크기 변수 추가 */
+  --font-size-large: 20px;      /* 큰 제목용 */
+  --font-size-medium: 18px;     /* 일반 제목용 */
+  --font-size-regular: 17px;    /* 일반 텍스트용 */
+  --font-size-small: 16px;      /* 작은 텍스트용 */
+  --font-size-label: 15px;      /* 라벨용 (최소 크기) */
 }
 
 /* ✅ 추가: 전체 폰트 설정 */
@@ -24,31 +31,33 @@
   padding: 20px;
   background-color: white;
   min-height: 100vh;
-  font-size: 16px; /* ✅ 수정: 5060세대 고려 기본 폰트 크기 증가 */
+  font-size: var(--font-size-regular); /* 개선: 기본 폰트 크기를 17px로 증가 */
 }
 
 .auth-header {
   display: flex;
   align-items: center;
-  justify-content: center; /* ✅ 수정: 중앙 정렬 강화 */
+  justify-content: center;
   margin-bottom: 30px;
   padding-top: 20px;
-  position: relative; /* ✅ 추가: 절대 위치 설정을 위한 기준점 */
+  position: relative;
 }
 
 .back-btn {
   background: none;
   border: none;
-  font-size: 24px; /* ✅ 수정: 터치 영역 고려 크기 증가 */
+  font-size: 28px; /* 개선: 24px → 28px로 증가 */
   color: var(--primary-color);
   cursor: pointer;
-  padding: 8px;
+  padding: 10px; /* 개선: 8px → 10px로 증가 */
   border-radius: 50%;
   transition: background-color 0.3s ease;
-  position: absolute; /* ✅ 수정: 절대 위치로 변경 */
+  position: absolute;
   left: 0; 
   top: 50%;
   transform: translateY(-50%);
+  min-width: 48px; /* 개선: 터치 영역 보장 */
+  min-height: 48px;
 }
 
 .back-btn:hover,
@@ -58,43 +67,43 @@
 }
 
 .auth-title {
-  font-size: 26px; /* ✅ 수정: 5060세대 고려 폰트 크기 증가 */
+  font-size: 28px; /* 개선: 26px → 28px로 증가 */
   font-weight: 700;
   color: var(--primary-color);
   margin: 0;
-  text-align: center; /* ✅ 수정: 중앙 정렬 명시 */
+  text-align: center;
   width: 100%;
 }
 
 .auth-form {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 28px; /* 개선: 24px → 28px로 증가 */
 }
 
 .form-section {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 20px; /* 개선: 16px → 20px로 증가 */
 }
 
-/* ✅ 추가: 구분선 스타일 */
 .section-divider {
   height: 1px;
   background-color: var(--border-color);
-  margin: 20px 0;
+  margin: 24px 0; /* 개선: 20px → 24px로 증가 */
 }
 
 .auth-input,
 .auth-textarea {
   width: 100%;
-  padding: 16px; /* ✅ 수정: 터치 영역 확대 */
+  padding: 18px; /* 개선: 16px → 18px로 증가 */
   border: 2px solid var(--border-color);
   border-radius: 8px;
-  font-size: 16px; /* ✅ 수정: 5060세대 고려 폰트 크기 */
+  font-size: var(--font-size-regular); /* 개선: 17px */
   font-family: inherit;
   transition: border-color 0.3s ease, box-shadow 0.3s ease;
   box-sizing: border-box;
+  line-height: 1.4; /* 개선: 라인 높이 추가 */
 }
 
 .auth-input:focus,
@@ -104,7 +113,6 @@
   box-shadow: 0 0 0 3px rgba(44, 62, 80, 0.1);
 }
 
-/* ✅ 추가: 생년월일 입력 필드 모바일 최적화 */
 .date-input-wrapper {
   position: relative;
 }
@@ -122,51 +130,88 @@
 }
 
 .date-input::-webkit-calendar-picker-indicator {
-  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%232C3E50' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='18' rx='2' ry='2'%3E%3C/rect%3E%3Cline x1='16' y1='2' x2='16' y2='6'%3E%3C/line%3E%3Cline x1='8' y1='2' x2='8' y2='6'%3E%3C/line%3E%3Cline x1='3' y1='10' x2='21' y2='10'%3E%3C/line%3E%3C/svg%3E") no-repeat;
-  width: 20px;
-  height: 20px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%232C3E50' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='18' rx='2' ry='2'%3E%3C/rect%3E%3Cline x1='16' y1='2' x2='16' y2='6'%3E%3C/line%3E%3Cline x1='8' y1='2' x2='8' y2='6'%3E%3C/line%3E%3Cline x1='3' y1='10' x2='21' y2='10'%3E%3C/line%3E%3C/svg%3E") no-repeat;
+  width: 24px; /* 개선: 20px → 24px로 증가 */
+  height: 24px;
   cursor: pointer;
 }
 
 .date-label {
-  font-size: 14px;
+  font-size: var(--font-size-label); /* 개선: 15px */
   color: var(--text-secondary);
-  margin-top: 4px;
+  margin-top: 6px; /* 개선: 4px → 6px로 증가 */
   margin-left: 4px;
 }
 
 .section-title {
-  font-size: 20px; /* ✅ 수정: 5060세대 고려 폰트 크기 증가 */
-  font-weight: 600;
-  color: var(--primary-color);
-  margin-bottom: 4px;
+  font-size: 22px; /* 개선: 20px → 22px로 증가 */
+  font-weight: 700; /* 개선: 600 → 700으로 증가 */
+  color: white; /* 개선: 텍스트 색상을 흰색으로 변경 */
+  margin-bottom: 6px; /* 개선: 4px → 6px로 증가 */
+  
+  /* ✅ 수정: 하이라이트 효과 - 왼쪽 녹색 제거, 남색만 사용 */
+  background: linear-gradient(135deg, var(--primary-color) 0%, #34495e 100%);
+  padding: 16px 20px;
+  border-radius: 12px;
+  box-shadow: 0 4px 15px rgba(44, 62, 80, 0.2);
+  position: relative;
+  overflow: hidden;
+  
+  /* ✅ 추가: 애니메이션 효과 */
+  animation: sectionTitleFadeIn 0.6s ease-out;
+  transform: translateY(0);
+  /* ✅ 수정: 호버 효과를 위한 transition 제거 */
 }
 
+/* ✅ 추가: 섹션 제목 애니메이션 */
+@keyframes sectionTitleFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ✅ 수정: 모든 h3 제목을 동일한 녹색 배경으로 통일 */
+.form-section h3.section-title {
+  background: var(--accent-color); /* 단색 녹색 */
+  color: white;
+  box-shadow: none; /* 그림자 제거 */
+  padding: 16px 20px; /* 패딩 통일 */
+  border-radius: 12px; /* 둥근 모서리 통일 */
+  margin-bottom: 6px; /* 마진 통일 */
+}
+
+/* ✅ 제거: 개별 h3 스타일 제거 - 모든 h3가 동일한 스타일 사용 */
+
 .section-subtitle {
-  font-size: 15px; /* ✅ 수정: 5060세대 고려 폰트 크기 증가 */
+  font-size: var(--font-size-regular); /* 개선: 15px → 17px로 증가 */
   color: var(--text-secondary);
-  margin-bottom: 16px;
+  margin-bottom: 18px; /* 개선: 16px → 18px로 증가 */
 }
 
 .interest-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
-  margin-top: 8px;
+  gap: 14px; /* 개선: 12px → 14px로 증가 */
+  margin-top: 10px; /* 개선: 8px → 10px로 증가 */
 }
 
 .interest-btn {
-  padding: 14px 16px; /* ✅ 수정: 터치 영역 확대 */
+  padding: 16px 18px; /* 개선: 14px 16px → 16px 18px로 증가 */
   border: 2px solid var(--border-color);
   border-radius: 20px;
   background-color: white;
   color: var(--text-primary);
-  font-size: 16px; /* ✅ 수정: 5060세대 고려 폰트 크기 증가 */
+  font-size: var(--font-size-regular); /* 개선: 17px */
   font-weight: 500;
   cursor: pointer;
   transition: all 0.3s ease;
   text-align: center;
-  min-height: 48px; /* ✅ 추가: 터치 영역 보장 */
+  min-height: 52px; /* 개선: 48px → 52px로 증가 */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -189,25 +234,24 @@
   border-color: var(--accent-color);
 }
 
-/* ✅ 추가: 체력 수준 버튼 스타일 */
 .physical-level-group {
   display: flex;
-  gap: 12px;
+  gap: 14px; /* 개선: 12px → 14px로 증가 */
   justify-content: space-between;
 }
 
 .physical-btn {
   flex: 1;
-  padding: 16px; /* ✅ 수정: 터치 영역 확대 */
+  padding: 18px; /* 개선: 16px → 18px로 증가 */
   border: 2px solid var(--border-color);
   border-radius: 8px;
   background-color: white;
   color: var(--text-primary);
-  font-size: 18px; /* ✅ 수정: 5060세대 고려 폰트 크기 증가 */
+  font-size: var(--font-size-large); /* 개선: 18px → 20px로 증가 */
   font-weight: 500;
   cursor: pointer;
   transition: all 0.3s ease;
-  min-height: 52px; /* ✅ 추가: 터치 영역 보장 */
+  min-height: 56px; /* 개선: 52px → 56px로 증가 */
 }
 
 .physical-btn:hover {
@@ -227,25 +271,24 @@
   border-color: var(--accent-color);
 }
 
-/* ✅ 추가: 실내/실외 선호 버튼 스타일 */
 .inside-outside-level-group {
   display: flex;
-  gap: 12px;
+  gap: 14px; /* 개선: 12px → 14px로 증가 */
   justify-content: space-between;
 }
 
 .inside-outside-btn {
   flex: 1;
-  padding: 16px; /* ✅ 수정: 터치 영역 확대 */
+  padding: 18px; /* 개선: 16px → 18px로 증가 */
   border: 2px solid var(--border-color);
   border-radius: 8px;
   background-color: white;
   color: var(--text-primary);
-  font-size: 18px; /* ✅ 수정: 5060세대 고려 폰트 크기 증가 */
+  font-size: var(--font-size-large); /* 개선: 18px → 20px로 증가 */
   font-weight: 500;
   cursor: pointer;
   transition: all 0.3s ease;
-  min-height: 52px; /* ✅ 추가: 터치 영역 보장 */
+  min-height: 56px; /* 개선: 52px → 56px로 증가 */
 }
 
 .inside-outside-btn:hover {
@@ -265,25 +308,24 @@
   border-color: var(--accent-color);
 }
 
-/* ✅ 추가: 이동 가능 시간 버튼 스타일 */
 .moving-level-group {
   display: flex;
-  gap: 12px;
+  gap: 14px; /* 개선: 12px → 14px로 증가 */
   justify-content: space-between;
 }
 
 .moving-btn {
   flex: 1;
-  padding: 16px; /* ✅ 수정: 터치 영역 확대 */
+  padding: 18px; /* 개선: 16px → 18px로 증가 */
   border: 2px solid var(--border-color);
   border-radius: 8px;
   background-color: white;
   color: var(--text-primary);
-  font-size: 18px; /* ✅ 수정: 5060세대 고려 폰트 크기 증가 */
+  font-size: var(--font-size-large); /* 개선: 18px → 20px로 증가 */
   font-weight: 500;
   cursor: pointer;
   transition: all 0.3s ease;
-  min-height: 52px; /* ✅ 추가: 터치 영역 보장 */
+  min-height: 56px; /* 개선: 52px → 56px로 증가 */
 }
 
 .moving-btn:hover {
@@ -303,26 +345,25 @@
   border-color: var(--accent-color);
 }
 
-/* ✅ 추가: 요일 버튼 그룹 스타일 (7개 균등 배치) */
 .day-group {
   display: flex;
-  gap: 8px;
+  gap: 10px; /* 개선: 8px → 10px로 증가 */
   justify-content: space-between;
-  margin-bottom: 16px;
+  margin-bottom: 18px; /* 개선: 16px → 18px로 증가 */
 }
 
 .day-btn {
   flex: 1;
-  padding: 16px 8px; /* ✅ 수정: 터치 영역 확대 */
+  padding: 18px 10px; /* 개선: 16px 8px → 18px 10px로 증가 */
   border: 2px solid var(--border-color);
   border-radius: 8px;
   background-color: white;
   color: var(--text-primary);
-  font-size: 16px; /* ✅ 수정: 5060세대 고려 폰트 크기 */
+  font-size: var(--font-size-medium); /* 개선: 16px → 18px로 증가 */
   font-weight: 500;
   cursor: pointer;
   transition: all 0.3s ease;
-  min-height: 52px; /* ✅ 추가: 터치 영역 보장 */
+  min-height: 56px; /* 개선: 52px → 56px로 증가 */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -345,25 +386,24 @@
   border-color: var(--accent-color);
 }
 
-/* ✅ 수정: 시간대 버튼 그룹 스타일 (3개 균등 배치) */
 .time-level-group {
   display: flex;
-  gap: 12px;
+  gap: 14px; /* 개선: 12px → 14px로 증가 */
   justify-content: space-between;
 }
 
 .time-btn {
   flex: 1;
-  padding: 16px; /* ✅ 수정: 터치 영역 확대 */
+  padding: 18px; /* 개선: 16px → 18px로 증가 */
   border: 2px solid var(--border-color);
   border-radius: 8px;
   background-color: white;
   color: var(--text-primary);
-  font-size: 18px; /* ✅ 수정: 5060세대 고려 폰트 크기 증가 */
+  font-size: var(--font-size-large); /* 개선: 18px → 20px로 증가 */
   font-weight: 500;
   cursor: pointer;
   transition: all 0.3s ease;
-  min-height: 52px; /* ✅ 추가: 터치 영역 보장 */
+  min-height: 56px; /* 개선: 52px → 56px로 증가 */
 }
 
 .time-btn:hover {
@@ -385,16 +425,16 @@
 
 .form-actions {
   display: flex;
-  gap: 12px;
-  margin-top: 40px;
-  margin-bottom: 40px;
+  gap: 14px; /* 개선: 12px → 14px로 증가 */
+  margin-top: 44px; /* 개선: 40px → 44px로 증가 */
+  margin-bottom: 44px; /* 개선: 40px → 44px로 증가 */
 }
 
 .btn-outline-small,
 .btn-primary-small {
   flex: 1;
-  height: 56px; /* ✅ 수정: 터치 영역 확대 */
-  font-size: 17px; /* ✅ 수정: 5060세대 고려 폰트 크기 증가 */
+  height: 60px; /* 개선: 56px → 60px로 증가 */
+  font-size: 19px; /* 개선: 17px → 19px로 증가 */
   font-weight: 600;
   border-radius: 8px;
   cursor: pointer;
@@ -431,11 +471,10 @@
   cursor: not-allowed;
 }
 
-/* ✅ 추가: 로그인 폼용 전체 너비 버튼 스타일 */
 .btn-primary-full {
   width: 100%;
-  height: 56px;
-  font-size: 17px;
+  height: 60px; /* 개선: 56px → 60px로 증가 */
+  font-size: 19px; /* 개선: 17px → 19px로 증가 */
   font-weight: 600;
   border-radius: 8px;
   cursor: pointer;
@@ -443,7 +482,7 @@
   background-color: var(--primary-color);
   color: white;
   border: none;
-  margin-top: 20px;
+  margin-top: 24px; /* 개선: 20px → 24px로 증가 */
 }
 
 .btn-primary-full:hover,
@@ -456,87 +495,9 @@
   cursor: not-allowed;
 }
 
-/* 모바일 최적화 */
-@media (max-width: 480px) {
-  .auth-container {
-    padding: 16px;
-  }
-  
-  .interest-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 10px;
-  }
-  
-  .interest-btn {
-    padding: 12px 14px;
-    font-size: 15px;
-    min-height: 44px;
-  }
-  
-  .physical-level-group {
-    gap: 8px;
-  }
-  
-  .physical-btn {
-    padding: 14px;
-    font-size: 16px;
-    min-height: 48px;
-  }
-
-  .inside-outside-level-group {
-    gap: 8px;
-  }
-
-  .inside-outside-btn {
-    padding: 14px;
-    font-size: 16px;
-    min-height: 48px;
-  }
-
-  .moving-level-group {
-    gap: 8px;
-  }
-
-  .moving-btn {
-    padding: 14px;
-    font-size: 16px;
-    min-height: 48px;
-  }
-
-  /* ✅ 추가: 모바일에서 요일 버튼 스타일 */
-  .day-group {
-    gap: 6px;
-  }
-
-  .day-btn {
-    padding: 12px 6px;
-    font-size: 14px;
-    min-height: 44px;
-  }
-
-  /* ✅ 추가: 모바일에서 시간대 버튼 스타일 */
-  .time-level-group {
-    gap: 8px;
-  }
-
-  .time-btn {
-    padding: 14px;
-    font-size: 16px;
-    min-height: 48px;
-  }
-
-  .btn-outline-small,
-  .btn-primary-small,
-  .btn-primary-full {
-    height: 52px;
-    font-size: 16px;
-  }
-}
-
-/* 시간표 스타일 - AuthForms.css에 추가할 내용 */
-
+/* 시간표 스타일 */
 .schedule-table {
-  margin: 20px 0;
+  margin: 24px 0; /* 개선: 20px → 24px로 증가 */
   overflow-x: auto;
 }
 
@@ -551,7 +512,7 @@
 
 .time-schedule-table th,
 .time-schedule-table td {
-  padding: 12px 8px;
+  padding: 14px 10px; /* 개선: 12px 8px → 14px 10px로 증가 */
   text-align: center;
   border: 1px solid #e0e0e0;
 }
@@ -559,35 +520,35 @@
 .time-schedule-table th {
   background-color: #f8f9fa;
   font-weight: 600;
-  font-size: 14px;
+  font-size: var(--font-size-small); /* 개선: 14px → 16px로 증가 */
   color: #333;
 }
 
 .day-header {
   background-color: #f1f3f5;
-  min-width: 50px;
+  min-width: 60px; /* 개선: 50px → 60px로 증가 */
 }
 
 .time-label {
   background-color: #f8f9fa;
   font-weight: 500;
-  font-size: 13px;
+  font-size: var(--font-size-label); /* 개선: 13px → 15px로 증가 */
   color: #555;
-  min-width: 60px;
+  min-width: 70px; /* 개선: 60px → 70px로 증가 */
 }
 
 .time-cell {
-  padding: 8px;
+  padding: 10px; /* 개선: 8px → 10px로 증가 */
 }
 
 .time-slot-btn {
-  width: 32px;
-  height: 32px;
+  width: 36px; /* 개선: 32px → 36px로 증가 */
+  height: 36px; /* 개선: 32px → 36px로 증가 */
   border: 2px solid #ddd;
   border-radius: 6px;
   background-color: #fff;
   color: #666;
-  font-size: 14px;
+  font-size: var(--font-size-small); /* 개선: 14px → 16px로 증가 */
   cursor: pointer;
   transition: all 0.2s ease;
   display: flex;
@@ -613,30 +574,127 @@
   border-color: #0056b3;
 }
 
+/* 입력 글자 수 카운터 추가 */
+.input-counter {
+  font-size: var(--font-size-label); /* 15px */
+  color: var(--text-secondary);
+  text-align: right;
+  margin-top: 4px;
+}
+
+/* ✅ 수정: 섹션 번호 표시 - 흰색 배경에 검은색 글자 */
+.section-title[data-step]::after {
+  content: attr(data-step);
+  position: absolute;
+  top: 50%;
+  right: 20px;
+  transform: translateY(-50%);
+  background: white; /* 수정: 완전 흰색 배경 */
+  color: #333; /* 수정: 검은색 글자 */
+  font-size: 14px;
+  font-weight: 600;
+  padding: 6px 12px; /* 수정: 패딩 조정 */
+  border-radius: 20px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* 수정: 그림자 추가 */
+}
+
 /* 모바일 반응형 */
 @media (max-width: 768px) {
   .schedule-table {
-    margin: 15px -10px;
+    margin: 18px -10px; /* 개선: 15px → 18px로 증가 */
   }
   
   .time-schedule-table th,
   .time-schedule-table td {
-    padding: 8px 4px;
-    font-size: 12px;
+    padding: 10px 6px; /* 개선: 8px 4px → 10px 6px로 증가 */
+    font-size: var(--font-size-label); /* 개선: 12px → 15px로 증가 */
   }
   
   .time-slot-btn {
-    width: 28px;
-    height: 28px;
-    font-size: 12px;
+    width: 32px; /* 개선: 28px → 32px로 증가 */
+    height: 32px;
+    font-size: var(--font-size-label); /* 개선: 12px → 15px로 증가 */
   }
   
   .day-header {
-    min-width: 40px;
+    min-width: 48px; /* 개선: 40px → 48px로 증가 */
   }
   
   .time-label {
-    min-width: 50px;
-    font-size: 12px;
+    min-width: 60px; /* 개선: 50px → 60px로 증가 */
+    font-size: var(--font-size-label); /* 개선: 12px → 15px로 증가 */
+  }
+}
+
+@media (max-width: 480px) {
+  .auth-container {
+    padding: 18px; /* 개선: 16px → 18px로 증가 */
+  }
+  
+  .interest-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px; /* 개선: 10px → 12px로 증가 */
+  }
+  
+  .interest-btn {
+    padding: 14px 16px; /* 개선: 12px 14px → 14px 16px로 증가 */
+    font-size: var(--font-size-small); /* 개선: 15px → 16px로 증가 */
+    min-height: 48px; /* 개선: 44px → 48px로 증가 */
+  }
+  
+  .physical-level-group,
+  .inside-outside-level-group,
+  .moving-level-group {
+    gap: 10px; /* 개선: 8px → 10px로 증가 */
+  }
+  
+  .physical-btn,
+  .inside-outside-btn,
+  .moving-btn {
+    padding: 16px; /* 개선: 14px → 16px로 증가 */
+    font-size: var(--font-size-medium); /* 개선: 16px → 18px로 증가 */
+    min-height: 52px; /* 개선: 48px → 52px로 증가 */
+  }
+
+  .day-group {
+    gap: 8px; /* 개선: 6px → 8px로 증가 */
+  }
+
+  .day-btn {
+    padding: 14px 8px; /* 개선: 12px 6px → 14px 8px로 증가 */
+    font-size: var(--font-size-small); /* 개선: 14px → 16px로 증가 */
+    min-height: 48px; /* 개선: 44px → 48px로 증가 */
+  }
+
+  .time-level-group {
+    gap: 10px; /* 개선: 8px → 10px로 증가 */
+  }
+
+  .time-btn {
+    padding: 16px; /* 개선: 14px → 16px로 증가 */
+    font-size: var(--font-size-medium); /* 개선: 16px → 18px로 증가 */
+    min-height: 52px; /* 개선: 48px → 52px로 증가 */
+  }
+
+  .btn-outline-small,
+  .btn-primary-small,
+  .btn-primary-full {
+    height: 56px; /* 개선: 52px → 56px로 증가 */
+    font-size: var(--font-size-medium); /* 개선: 16px → 18px로 증가 */
+  }
+  
+  .auth-title {
+    font-size: 24px; /* 개선: 더 큰 제목 유지 */
+  }
+  
+  /* ✅ 모바일에서 섹션 제목 최적화 - 호버 효과 제거 */
+  .section-title {
+    font-size: var(--font-size-large); /* 개선: 20px */
+    padding: 14px 18px; /* 개선: 모바일에서 패딩 조정 */
+    margin-bottom: 4px;
+  }
+  
+  .back-btn {
+    font-size: 24px; /* 개선: 모바일에서도 충분한 크기 유지 */
   }
 }

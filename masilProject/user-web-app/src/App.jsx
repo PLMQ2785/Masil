@@ -11,7 +11,7 @@ import ActivityListPage from './pages/ActivityListPage';
 import AdminPage from './pages/AdminPage';
 
 // 레이아웃 래퍼 컴포넌트 생성
-function AppContent({ user, loading }) {
+function AppContent({ user, session, loading }) {
   const location = useLocation();
   
   // ActivityListPage인지 확인
@@ -44,8 +44,8 @@ function AppContent({ user, loading }) {
           </>
         ) : (
           <>
-            {/* 로그인한 사용자용 라우트 */}
-            <Route path="/activities" element={<ActivityListPage />} />
+            {/* 로그인한 사용자용 라우트 - session 정보 전달 */}
+            <Route path="/activities" element={<ActivityListPage session={session} />} />
             <Route path="/admin" element={<AdminPage />} />
             {/* 로그인한 상태에서 루트 경로 접근 시 활동 목록으로 리다이렉트 */}
             <Route path="/" element={<Navigate to="/activities" replace />} />
@@ -61,12 +61,14 @@ function AppContent({ user, loading }) {
 
 function App() {
   const [user, setUser] = useState(null);
+  const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     // 초기 세션 확인
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
+      setSession(session);
       setLoading(false);
     });
 
@@ -75,6 +77,7 @@ function App() {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
+      setSession(session);
       setLoading(false);
     });
 
@@ -83,7 +86,7 @@ function App() {
 
   return (
     <Router>
-      <AppContent user={user} loading={loading} />
+      <AppContent user={user} session={session} loading={loading} />
     </Router>
   );
 }

@@ -93,6 +93,40 @@ class ApiService {
     }
   }
 
+  // 🆕 STT 전용 메서드 (음성을 텍스트로만 변환)
+  static async speechToText(audioBlob) {
+    try {
+      console.log('🔤 STT 요청 데이터:', { audioSize: audioBlob.size });
+      
+      // FormData 생성
+      const formData = new FormData();
+      formData.append('audio_file', audioBlob, 'voice_input.webm');
+      
+      console.log('📤 STT 요청 URL:', `${API_BASE_URL}/stt`);
+      
+      const response = await fetch(`${API_BASE_URL}/stt`, {
+        method: 'POST',
+        body: formData, // Content-Type 헤더를 설정하지 않음 (multipart/form-data 자동 설정)
+      });
+      
+      console.log('📥 STT 응답 상태:', response.status, response.statusText);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ STT 서버 에러 응답:', errorText);
+        throw new Error(`STT 처리 실패: HTTP ${response.status}`);
+      }
+      
+      const data = await response.json();
+      console.log('🔤 STT 원본 응답:', data);
+      
+      return data; // { text: "변환된 텍스트" } 형태
+    } catch (error) {
+      console.error('❌ STT 처리 실패:', error);
+      throw error;
+    }
+  }
+
   // 🎤 음성 추천 일거리 조회 (main.py의 /api/recommend-voice 엔드포인트)
   static async getVoiceRecommendedJobs(userId, audioBlob, excludeIds = []) {
     try {

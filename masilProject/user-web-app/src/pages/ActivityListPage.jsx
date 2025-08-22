@@ -5,7 +5,7 @@ import BottomNavBar from '../components/BottomNavBar';
 import VoiceModal from '../components/VoiceModal';
 import './ActivityListPage.css';
 
-export default function ActivityListPage() {
+export default function ActivityListPage({ session }) {
   const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showVoiceModal, setShowVoiceModal] = useState(false);
@@ -16,8 +16,8 @@ export default function ActivityListPage() {
   const [recommendationCount, setRecommendationCount] = useState(0);
   const [recommendedJobs, setRecommendedJobs] = useState([]); // 추천된 일자리 목록 저장
   
-  // 임시 사용자 ID (실제 구현에서는 로그인 정보에서 가져와야 함)
-  const userId = "f97c17bf-c304-48df-aa54-d77fa23f96ee";
+  // 실제 로그인된 사용자 ID 사용
+  const userId = session?.user?.id;
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -83,8 +83,21 @@ export default function ActivityListPage() {
 
   // Job있으 버튼 클릭 핸들러
   const handleJobListClick = () => {
+    if (!userId) {
+      console.error('❌ 사용자 ID가 없습니다. 로그인 상태를 확인해주세요.');
+      alert('로그인 정보를 확인할 수 없습니다. 다시 로그인해주세요.');
+      return;
+    }
+    
     console.log('📋 Job있으 버튼 클릭됨 - AI 추천 모드 활성화');
     console.log('🔍 사용할 사용자 ID:', userId);
+    console.log('👤 사용자 정보:', {
+      id: session?.user?.id,
+      phone: session?.user?.phone,
+      email: session?.user?.email,
+      nickname: session?.user?.user_metadata?.nickname
+    });
+    
     setIsRecommendationMode(true);
     setSelectedTab('list');
   };
@@ -93,7 +106,7 @@ export default function ActivityListPage() {
   const handleRecommendationComplete = (count, jobs = []) => {
     setRecommendationCount(count);
     setRecommendedJobs(jobs); // 추천된 일자리 목록 저장
-    console.log(`✅ AI 추천 완료: ${count}개의 일거리 발견`);
+    console.log(`✅ AI 추천 완료: ${count}개의 일거리 발견 (사용자 ID: ${userId})`);
     console.log('📊 추천된 일자리 목록:', jobs);
   };
 
@@ -101,6 +114,26 @@ export default function ActivityListPage() {
   const getExcludeJobIds = () => {
     return recommendedJobs.map(job => job.job_id);
   };
+
+  // 사용자 정보가 없는 경우 로딩 상태 표시
+  if (!session || !userId) {
+    return (
+      <div className="activity-page-container">
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          height: '100vh',
+          flexDirection: 'column',
+          gap: '16px'
+        }}>
+          <div style={{ fontSize: '48px' }}>👤</div>
+          <p style={{ fontSize: '18px', color: '#2C3E50' }}>사용자 정보를 확인하는 중...</p>
+          <p style={{ fontSize: '14px', color: '#666' }}>잠시만 기다려주세요</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="activity-page-container">
@@ -119,7 +152,7 @@ export default function ActivityListPage() {
             margin: '8px 0 0 0',
             textAlign: 'center'
           }}>
-            🤖 사용자 맞춤 추천 결과입니다
+            🤖 {session?.user?.user_metadata?.nickname || '사용자'}님 맞춤 추천 결과입니다
           </p>
         )}
       </div>
@@ -157,6 +190,7 @@ export default function ActivityListPage() {
         <VoiceModal 
           onClose={handleCloseVoiceModal} 
           excludeJobIds={getExcludeJobIds()}
+          userId={userId}
         />
       )}
     </div>
