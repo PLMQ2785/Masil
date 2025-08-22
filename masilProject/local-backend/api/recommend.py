@@ -148,9 +148,15 @@ def run_rag_pipeline(user_id: UUID, query: str, k: int, exclude_ids: Optional[Li
     
     # 긍정적이었던 활동의 제목을 가져와 히스토리 정보 구성 (선택사항이지만 효과적)
     if accepted_ids:
-        accepted_jobs_response = supabase.from_("jobs").select("title").in_("job_id", list(accepted_ids)).execute()
-        accepted_titles = [job['title'] for job in accepted_jobs_response.data]
-        history_info = f"- 과거 긍정적 활동: {', '.join(accepted_titles)}"
+        # 1. select 구문에 'job_id'를 추가합니다.
+        accepted_jobs_response = supabase.from_("jobs").select("job_id, title").in_("job_id", list(accepted_ids)).execute()
+        
+        # 2. LLM이 이해하기 좋은 형태로 텍스트를 조합합니다. (예: "[123] 시니어 복지 보안관")
+        accepted_job_texts = [
+            f"[{job['job_id']}] {job['title']}" 
+            for job in accepted_jobs_response.data
+        ]
+        history_info = f"- 과거 긍정적 활동: {', '.join(accepted_job_texts)}"
     else:
         history_info = ""
         
