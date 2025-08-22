@@ -10,7 +10,7 @@ from datetime import date
 from core.config import settings
 from models.schemas import RecommendRequest
 from services.geo import haversine_km, estimate_travel_min
-from services.time_calculator import compute_time_overlap_metrics
+from services.time_calculator import compute_time_overlap_metrics, format_work_days
 from services.recommend_calculator import compute_pay_norm
 from services.recommend_calculator import calculate_final_score
 
@@ -66,36 +66,7 @@ def generate_fallback_reason(candidate):
 def run_rag_pipeline(user_id: UUID, query: str, k: int, exclude_ids: Optional[List[int]] = None, current_latitude: Optional[float] = None, current_longitude: Optional[float] = None) -> dict:
     
     ab_test_flag = "llm"
-    
-    # --- 👇 1단계: 쿼리 재작성 (Query Rewriting) - 신규 추가 ---
-    rewrite_prompt = f"""
-        당신은 시니어 사용자의 일자리 검색어를 벡터 검색에 최적화된 형태로 재작성하는 전문가입니다.
-        사용자의 짧고 모호한 질문을 받으면, 그 의도를 파악하여 구체적인 조건과 키워드가 포함된 풍부한 문장으로 바꿔주세요.
-        답변은 오직 재작성된 쿼리 문장만 포함해야 합니다.
 
-        [예시 1]
-        - 사용자 질문: 편한 일
-        - 재작성된 쿼리: 적은 신체 활동을 요구하고 근무 시간이 짧으며, 실내에서 할 수 있는 파트타임 일자리
-
-        [예시 2]
-        - 사용자 질문: 컴퓨터 쓰는 일
-        - 재작성된 쿼리: 워드 프로세서나 엑셀 등 기본적인 컴퓨터 활용 능력이 필요한 사무 보조 또는 행정 지원 관련 일자리
-
-        [실제 재작성 요청]
-        - 사용자 질문: {query}
-        - 재작성된 쿼리:
-        """
-    
-    rewrite_response = client.chat.completions.create(
-        model="gpt-5-nano", # 재작성은 가벼운 모델로도 충분합니다.
-        messages=[{"role": "user", "content": rewrite_prompt}],
-    )
-    
-    rewritten_query = rewrite_response.choices[0].message.content.strip()
-    print(f"--- 쿼리 재작성 완료 ---\n원본: {query}\n재작성: {rewritten_query}\n-------------------------")
-    query = rewritten_query  # 재작성된 쿼리로 업데이트
-    # --- 👆 신규 단계 끝 ---
-    
     # 1. 사용자 컨텍스트 및 히스토리 조회
     user_response = supabase.from_("users").select("*").eq("id", str(user_id)).single().execute()
     user_ctx = user_response.data
@@ -114,6 +85,33 @@ def run_rag_pipeline(user_id: UUID, query: str, k: int, exclude_ids: Optional[Li
                 print(f"Warning: '{key}' 필드가 유효한 JSON이 아니므로 문자열로 처리합니다: {value}")
                 user_ctx[key] = [item.strip() for item in value.split(',')]
     # --- 👆 수정 끝 ---
+    
+    # --- 👇 1단계: 쿼리 재작성 (Query Rewriting) - 신규 추가 ---
+    rewrite_prompt = f"""
+        당신은 시니어 사용자의 일자리 검색어를 벡터 검색에 최적화된 형태로 재작성하는 전문가입니다.
+        사용자의 [질문]과 [사용자 프로필]을 종합적으로 고려하여, 사용자의 숨은 의도까지 파악한 구체적인 검색어를 만들어주세요.
+
+        [사용자 프로필]
+        - 나이: {calculate_age(user_ctx.get('date_of_birth'))}세
+        - 선호 직무: {user_ctx.get('preferred_jobs')}
+        - 선호 환경: {user_ctx.get('preferred_environment')}
+        - 근무 가능 요일: {format_availability(user_ctx.get('availability_json'))}
+
+        [실제 재작성 요청]
+        - 사용자 질문: {query}
+        - 재작성된 쿼리:
+        """
+    
+    rewrite_response = client.chat.completions.create(
+        model="gpt-5-nano", # 재작성은 가벼운 모델로도 충분합니다.
+        messages=[{"role": "user", "content": rewrite_prompt}],
+    )
+    
+    rewritten_query = rewrite_response.choices[0].message.content.strip()
+    print(f"--- 쿼리 재작성 완료 ---\n원본: {query}\n재작성: {rewritten_query}\n-------------------------")
+    query = rewritten_query  # 재작성된 쿼리로 업데이트
+    # --- 👆 신규 단계 끝 ---
+    
     
     history_response = supabase.from_("user_job_reviews").select("job_id, status").eq("user_id", str(user_id)).execute()
     user_history = history_response.data or []
@@ -211,6 +209,27 @@ def run_rag_pipeline(user_id: UUID, query: str, k: int, exclude_ids: Optional[Li
     # full_candidates_response = supabase.from_("jobs").select("*").in_("job_id", retrieved_ids).execute()
     full_candidates_response = supabase.from_("jobs").select(select_query).in_("job_id", retrieved_ids).execute()
     candidates = full_candidates_response.data
+    
+    # --- 👇 강력한 필터(Hard Filter) 추가 ---
+    original_candidate_count = len(candidates)
+    
+    # 예시: 재작성된 쿼리에 '주중'이 포함되면, 주말 근무 일자리 제외
+    if '주중' in query and ('주말' not in query):
+        candidates = [
+            job for job in candidates 
+            if job.get('work_days') and (job['work_days'][5] == '0' and job['work_days'][6] == '0')
+        ]
+    
+    # 예시: 재작성된 쿼리에 '실내'가 포함되면, 제목이나 설명에 '실외','야외'가 있는 일자리 제외
+    if '실내' in query and ('실외' not in query):
+        candidates = [
+            job for job in candidates
+            if '실외' not in job.get('title','') and '야외' not in job.get('title','') and \
+               '실외' not in job.get('description','') and '야외' not in job.get('description','')
+        ]
+
+    print(f"--- 강력한 필터 적용: {original_candidate_count}개 -> {len(candidates)}개 후보 ---")
+    # --- 👆 필터 추가 끝 👆 ---
 
     # 4. 필터링 및 재정렬 (Reranking)
     
@@ -224,6 +243,13 @@ def run_rag_pipeline(user_id: UUID, query: str, k: int, exclude_ids: Optional[Li
             #     for job in candidates
             # ]
             
+            candidates_for_prompt = []
+            for job in candidates:
+                job_info = {key: value for key, value in job.items() if key != 'embedding'}
+                job_info['work_days_text'] = format_work_days(job.get('work_days'))
+                candidates_for_prompt.append(job_info)
+            
+            
             # LLM에 전달할 프롬프트 설계 (점수 계산 역할 명시)
             scoring_prompt = f"""
                 당신은 사용자의 프로필과 선호도에 맞춰 일자리를 추천하는 최고의 AI 전문가입니다.
@@ -233,6 +259,10 @@ def run_rag_pipeline(user_id: UUID, query: str, k: int, exclude_ids: Optional[Li
                 1.  [일자리 후보 목록]에 있는 각 일자리에 대해, 사용자와의 적합도를 0.0에서 1.0 사이의 'match_score'로 계산합니다. 점수가 높을수록 더 적합합니다.
                 2.  모든 후보에 대한 평가 점수를 아래 [출력 형식]과 완벽하게 일치하는 단일 JSON 객체로 반환합니다.
 
+                [엄격한 규칙]
+                - 만약 사용자가 '주중 근무'를 원하는데 일자리의 'work_days_text'에 '토' 또는 '일'이 포함되어 있다면, match_score를 0.2점 이하로 부여해야 합니다.
+                - 만약 사용자가 '실내 근무'를 원하는데 일자리의 내용에 '야외 활동'이 명시되어 있다면, match_score를 0.2점 이하로 부여해야 합니다.
+                
                 [사용자 정보]
                 - 나이: {calculate_age(user_ctx.get('date_of_birth'))}세
                 - 선호 직무: {user_ctx.get('preferred_jobs')}
@@ -244,7 +274,7 @@ def run_rag_pipeline(user_id: UUID, query: str, k: int, exclude_ids: Optional[Li
                 {query}
 
                 [일자리 후보 목록]
-                {json.dumps(candidates, indent=2, ensure_ascii=False)}
+                {json.dumps(candidates_for_prompt, indent=2, ensure_ascii=False)}
 
                 [출력 형식]
                 {{
@@ -321,7 +351,19 @@ def run_rag_pipeline(user_id: UUID, query: str, k: int, exclude_ids: Optional[Li
         reranked_jobs.append(job)
         
     reranked_jobs.sort(key=lambda x: x.get('match_score', 0), reverse=True)
-    top_k_jobs = reranked_jobs[:k]
+    
+    # --- 👇 최저 점수 필터링 로직 추가 👇 ---
+    
+    # 2. 점수가 0.2를 초과하는 항목만 최종 후보로 남깁니다.
+    qualified_jobs = [
+        job for job in reranked_jobs if job.get('match_score', 0) > 0.2
+    ]
+    
+    # --- 👆 로직 추가 끝 👆 ---
+    
+    # top_k_jobs = reranked_jobs[:k]
+    top_k_jobs = qualified_jobs[:k]
+    
     if not top_k_jobs:
         return {"answer": "조건에 맞는 소일거리를 찾지 못했습니다.", "jobs": []}
     
@@ -340,6 +382,12 @@ def run_rag_pipeline(user_id: UUID, query: str, k: int, exclude_ids: Optional[Li
     # ]
     
     # 모든 추천 이유를 한 번에 생성하도록 하는 프롬프트
+    top_k_for_prompt = []
+    for job in top_k_jobs:
+        job_info = {key: value for key, value in job.items() if key != 'embedding'}
+        job_info['work_days_text'] = format_work_days(job.get('work_days'))
+        top_k_for_prompt.append(job_info)
+    
     reason_generation_prompt = f"""
         당신은 AI 추천 전문가입니다. 사용자의 [질문]과 [사용자 정보]를 바탕으로, 아래 [추천 일자리 목록]에 있는 각 일자리에 대해 왜 좋은 추천인지 그 이유를 한 문장으로 간결하게 설명해주세요.
 
@@ -352,7 +400,7 @@ def run_rag_pipeline(user_id: UUID, query: str, k: int, exclude_ids: Optional[Li
         {query}
 
         [추천 일자리 목록]
-        {json.dumps(top_k_jobs, indent=2, ensure_ascii=False)}
+        {json.dumps(top_k_for_prompt, indent=2, ensure_ascii=False)}
 
         [출력 형식]
         반드시 아래와 같은 JSON 형식으로만 응답해주세요. 'reasons' 리스트에는 [추천 일자리 목록]과 동일한 순서로 각 job_id와 추천 이유를 포함해야 합니다.

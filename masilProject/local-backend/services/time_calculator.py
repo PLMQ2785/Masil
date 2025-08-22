@@ -1,7 +1,14 @@
 import math
 from typing import Dict, List
 
-WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+WEEKDAYS = ["월", "화", "수", "목", "금", "토", "일"]
+
+def format_work_days(bitmask: str) -> str:
+    if not bitmask or len(bitmask) != 7:
+        return "정보 없음"
+    
+    days = [WEEKDAYS[i] for i, char in enumerate(bitmask) if char == '1']
+    return ', '.join(days) if days else "협의 가능"
 
 def parse_time_to_min(s: str) -> int:
     if not s or ":" not in s: return 0
@@ -92,3 +99,4 @@ def compute_time_overlap_metrics(availability_json: Dict, work_days_bits: str, s
         "user_fit_ratio": round(user_fit_ratio, 2),
         "time_fit": round(time_fit, 2),
     }
+    

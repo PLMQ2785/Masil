@@ -50,6 +50,25 @@ def get_user_profile(user_id: UUID):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"프로필 조회 실패: {str(e)}")
 
+@router.get("/{user_id}/profile-history")
+def get_user_profile(user_id: UUID):
+    try:
+        # select 구문에 jobs 테이블과의 조인을 추가합니다.
+        # "*, jobs(title, hourly_wage, place, address, start_time, end_time)"
+        # 위 구문은 user_job_reviews의 모든 필드(*)와
+        # jobs 테이블의 지정된 필드를 함께 조회하라는 의미입니다.
+        response = supabase.from_("user_job_reviews").select(
+            "*, jobs(title, hourly_wage, place, address, start_time, end_time)"
+        ).eq("user_id", str(user_id)).execute()
+        
+        if not response.data:
+            # 데이터가 없는 것은 에러가 아니므로 404 대신 빈 리스트를 반환합니다.
+            return []
+            
+        return response.data
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"프로필 조회 실패: {str(e)}")
+
 
 @router.put("/{user_id}/profile")
 def update_user_profile(user_id: UUID, profile_update: UserProfileUpdate):
