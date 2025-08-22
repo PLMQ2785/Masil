@@ -1,0 +1,408 @@
+/* src/pages/MyProfilePage.css */
+
+/* CSS 변수 정의 */
+:root {
+  --primary-color: #2C3E50;
+  --accent-color: #BFCC6B;
+  --background-color: #f5f5f5;
+  --text-primary: #333;
+  --text-secondary: #666;
+  --border-color: #e0e0e0;
+  --success-color: #27AE60;
+  --success-light: #E8F8F0;
+  
+  /* 5060세대를 위한 폰트 크기 변수 */
+  --font-size-large: 20px;
+  --font-size-medium: 18px;
+  --font-size-regular: 17px;
+  --font-size-small: 16px;
+  --font-size-label: 15px;
+}
+
+/* Pretendard 폰트 적용 */
+.profile-page-container,
+.profile-page-container * {
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans KR', sans-serif;
+}
+
+/* 페이지 컨테이너 */
+.profile-page-container {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 0;
+  background-color: white;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 헤더 */
+.profile-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  background: linear-gradient(135deg, var(--primary-color) 0%, #34495e 100%);
+  color: white;
+  padding: 20px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.profile-back-btn {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  font-size: 28px;
+  color: white;
+  cursor: pointer;
+  padding: 10px;
+  border-radius: 50%;
+  transition: all 0.3s ease;
+  position: absolute;
+  left: 20px;
+  top: 50%;
+  transform: translateY(-50%);
+  min-width: 48px;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.profile-back-btn:hover,
+.profile-back-btn:active {
+  background: var(--accent-color);
+  transform: translateY(-50%) scale(1.1);
+}
+
+.profile-title {
+  font-size: 22px;
+  font-weight: 700;
+  margin: 0;
+  text-align: center;
+}
+
+/* 사용자 정보 섹션 */
+.profile-user-info {
+  background: linear-gradient(135deg, var(--primary-color) 0%, #34495e 100%);
+  color: white;
+  text-align: center;
+  padding: 30px 20px;
+}
+
+.user-avatar {
+  width: 80px;
+  height: 80px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 36px;
+  margin: 0 auto 16px;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+}
+
+.user-name {
+  font-size: 24px;
+  font-weight: 700;
+  margin: 0 0 8px 0;
+  color: white;
+}
+
+.user-subtitle {
+  font-size: var(--font-size-regular);
+  color: rgba(255, 255, 255, 0.8);
+  margin: 0;
+  font-weight: 500;
+}
+
+/* 컨텐츠 영역 */
+.profile-content {
+  flex: 1;
+  padding: 24px 20px;
+  background-color: var(--background-color);
+}
+
+/* 로딩, 에러, 빈 상태 */
+.profile-loading,
+.profile-error,
+.profile-error-message,
+.profile-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--text-secondary);
+}
+
+.profile-loading p,
+.profile-error p,
+.profile-error-message p,
+.profile-empty p {
+  font-size: var(--font-size-regular);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.profile-empty h3 {
+  font-size: var(--font-size-large);
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 12px 0;
+}
+
+.profile-retry-btn {
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: var(--font-size-small);
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 16px;
+  transition: all 0.3s ease;
+}
+
+.profile-retry-btn:hover,
+.profile-retry-btn:active {
+  background: var(--accent-color);
+  transform: translateY(-1px);
+}
+
+/* 지원한 일자리 목록 */
+.applied-jobs-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.applied-jobs-header {
+  margin-bottom: 8px;
+}
+
+.applied-jobs-header h3 {
+  font-size: var(--font-size-large);
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+/* 일자리 카드 */
+.applied-job-card {
+  background: white;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+  border: 1px solid var(--border-color);
+  transition: all 0.3s ease;
+}
+
+.applied-job-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+}
+
+/* 카드 헤더 */
+.job-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 20px;
+  gap: 12px;
+}
+
+.job-card-title {
+  font-size: var(--font-size-medium);
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+  line-height: 1.3;
+  flex: 1;
+}
+
+.job-card-status {
+  background: var(--success-light);
+  color: var(--success-color);
+  font-size: 14px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 20px;
+  white-space: nowrap;
+  border: 1px solid var(--success-color);
+}
+
+/* 카드 정보 */
+.job-card-info {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.job-info-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.job-info-label {
+  font-size: var(--font-size-small);
+  font-weight: 600;
+  color: var(--text-secondary);
+  min-width: 80px;
+  flex-shrink: 0;
+}
+
+.job-info-value {
+  font-size: var(--font-size-small);
+  font-weight: 600;
+  color: var(--text-primary);
+  flex: 1;
+  line-height: 1.4;
+}
+
+/* 카드 설명 */
+.job-card-description {
+  border-top: 1px solid var(--border-color);
+  padding-top: 16px;
+}
+
+.job-card-description h5 {
+  font-size: var(--font-size-small);
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 8px 0;
+}
+
+.job-card-description p {
+  font-size: var(--font-size-label);
+  color: var(--text-secondary);
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* 모바일 최적화 */
+@media (max-width: 768px) {
+  .profile-header {
+    padding: 16px 20px;
+  }
+  
+  .profile-title {
+    font-size: 20px;
+  }
+  
+  .profile-back-btn {
+    font-size: 24px;
+    min-width: 44px;
+    min-height: 44px;
+    left: 16px;
+  }
+  
+  .profile-user-info {
+    padding: 24px 20px;
+  }
+  
+  .user-avatar {
+    width: 70px;
+    height: 70px;
+    font-size: 32px;
+  }
+  
+  .user-name {
+    font-size: 22px;
+  }
+  
+  .profile-content {
+    padding: 20px 16px;
+  }
+  
+  .applied-job-card {
+    padding: 20px;
+  }
+  
+  .job-card-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  
+  .job-card-status {
+    align-self: flex-end;
+  }
+}
+
+@media (max-width: 480px) {
+  .profile-page-container {
+    max-width: 100%;
+  }
+  
+  .profile-header {
+    padding: 12px 16px;
+  }
+  
+  .profile-title {
+    font-size: 18px;
+  }
+  
+  .profile-back-btn {
+    font-size: 22px;
+    min-width: 40px;
+    min-height: 40px;
+    left: 12px;
+  }
+  
+  .profile-user-info {
+    padding: 20px 16px;
+  }
+  
+  .user-avatar {
+    width: 60px;
+    height: 60px;
+    font-size: 28px;
+  }
+  
+  .user-name {
+    font-size: 20px;
+  }
+  
+  .profile-content {
+    padding: 16px 12px;
+  }
+  
+  .applied-jobs-list {
+    gap: 16px;
+  }
+  
+  .applied-job-card {
+    padding: 16px;
+    border-radius: 12px;
+  }
+  
+  .job-card-title {
+    font-size: var(--font-size-regular);
+  }
+  
+  .job-info-row {
+    gap: 8px;
+  }
+  
+  .job-info-label {
+    min-width: 70px;
+    font-size: 14px;
+  }
+  
+  .job-info-value {
+    font-size: 14px;
+  }
+  
+  .job-card-description h5 {
+    font-size: 14px;
+  }
+  
+  .job-card-description p {
+    font-size: 13px;
+  }
+}

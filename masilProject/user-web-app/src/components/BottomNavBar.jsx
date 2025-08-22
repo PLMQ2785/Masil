@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import './BottomNavBar.css';
 
-export default function BottomNavBar({ onMicClick, onJobListClick, initialSelected = '' }) {
+export default function BottomNavBar({ onMicClick, onJobListClick, onProfileClick, initialSelected = '' }) {
   const [selectedTab, setSelectedTab] = useState(initialSelected);
 
   const handleTabClick = (tabName) => {
@@ -14,6 +14,8 @@ export default function BottomNavBar({ onMicClick, onJobListClick, initialSelect
       onJobListClick();
     } else if (tabName === 'voice' && onMicClick) {
       onMicClick();
+    } else if (tabName === 'profile' && onProfileClick) {
+      onProfileClick();
     }
   };
 

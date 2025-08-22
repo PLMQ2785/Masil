@@ -77,7 +77,7 @@ export default function MapComponent({ isRecommendationMode = false, userId = nu
   const [naverMap, setNaverMap] = useState(null);
   const markersRef = useRef([]);
 
-  // 📍 사용자 위치 획득
+  // 🔍 사용자 위치 획득
   useEffect(() => {
     const getUserLocation = () => {
       if (navigator.geolocation) {
@@ -88,7 +88,7 @@ export default function MapComponent({ isRecommendationMode = false, userId = nu
               longitude: position.coords.longitude
             };
             setUserLocation(location);
-            console.log('📍 사용자 위치 획득 성공:', location);
+            console.log('🔍 사용자 위치 획득 성공:', location);
           },
           (error) => {
             console.warn('⚠️ 사용자 위치 획득 실패, 기본 위치 사용:', error);
@@ -223,50 +223,15 @@ export default function MapComponent({ isRecommendationMode = false, userId = nu
     jobsData.forEach((job) => {
       const markerPosition = new window.naver.maps.LatLng(job.job_latitude, job.job_longitude);
       
-      // 추천 모드일 때는 빨간색, 일반 모드일 때는 녹색
+      // 추천 모드일 때는 빨간색, 일반 모드일 때는 파란색
       const markerColor = isRecommendationMode ? '#ff0000ff' : 'rgba(8, 0, 255, 1)';
       
-      /*
       const marker = new window.naver.maps.Marker({
         position: markerPosition,
         map: naverMap,
         title: job.title,
         icon: {
           content: `
-            <div style="
-              position: relative;
-              cursor: pointer;
-              transition: all 0.3s ease;
-            " onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
-              <svg width="40" height="50" viewBox="0 0 40 50" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <!-- 핀 드롭 섀도우 -->
-                <ellipse cx="20" cy="47" rx="8" ry="3" fill="rgba(1, 7, 13, 0.2)"/>
-                
-                <!-- 메인 핀 모양 -->
-                <path d="M20 2C11.163 2 4 9.163 4 18c0 12 16 28 16 28s16-16 16-28c0-8.837-7.163-16-16-16z" 
-                      fill="${markerColor}" 
-                      stroke="white" 
-                      stroke-width="2"/>
-                
-                <!-- 중앙 원 -->
-                <circle cx="20" cy="18" r="8" fill="white"/>
-                <circle cx="20" cy="18" r="5" fill="#2C3E50"/>
-                
-                <!-- 하이라이트 효과 -->
-                <ellipse cx="17" cy="15" rx="2" ry="3" fill="rgba(255, 255, 255, 0.3)"/>
-              </svg>
-            </div>
-          `,
-          anchor: new window.naver.maps.Point(20, 50)
-        }
-      });*/
-
-      const marker = new window.naver.maps.Marker({
-    position: markerPosition,
-    map: naverMap,
-    title: job.title,
-    icon: {
-        content: `
             <div style="
                 position: relative;
                 cursor: pointer;
@@ -286,10 +251,10 @@ export default function MapComponent({ isRecommendationMode = false, userId = nu
                     <ellipse cx="17" cy="15" rx="2" ry="3" fill="rgba(255, 255, 255, 0.3)"/>
                 </svg>
             </div>
-        `,
-        anchor: new window.naver.maps.Point(30, 75) // 마커의 크기에 맞춰 anchor 위치 조정
-    }
-});
+          `,
+          anchor: new window.naver.maps.Point(30, 75)
+        }
+      });
 
       // 🔍 마커 클릭 이벤트 - 상세정보 조회 및 모달 표시
       window.naver.maps.Event.addListener(marker, 'click', async () => {
@@ -406,6 +371,7 @@ export default function MapComponent({ isRecommendationMode = false, userId = nu
         isVisible={showModal}
         onClose={handleCloseModal}
         showRecommendationReason={isRecommendationMode}
+        userId={userId}
       />
     </div>
   );

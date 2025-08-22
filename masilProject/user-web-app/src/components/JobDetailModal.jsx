@@ -1,8 +1,11 @@
 // src/components/JobDetailModal.jsx
-import React from 'react';
+import React, { useState } from 'react';
+import JobApplicationModal from './JobApplicationModal';
 import './JobDetailModal.css';
 
-export default function JobDetailModal({ job, onClose, isVisible, showRecommendationReason = false }) {
+export default function JobDetailModal({ job, onClose, isVisible, showRecommendationReason = false, userId }) {
+  const [showApplicationModal, setShowApplicationModal] = useState(false);
+
   const formatWage = (wage) => {
     return wage ? `시급 ${wage.toLocaleString()}원` : '급여 협의';
   };
@@ -44,6 +47,14 @@ export default function JobDetailModal({ job, onClose, isVisible, showRecommenda
     }
   };
 
+  const handleApplyClick = () => {
+    setShowApplicationModal(true);
+  };
+
+  const handleApplicationModalClose = () => {
+    setShowApplicationModal(false);
+  };
+
   React.useEffect(() => {
     if (isVisible) {
       document.addEventListener('keydown', handleKeyDown);
@@ -59,99 +70,109 @@ export default function JobDetailModal({ job, onClose, isVisible, showRecommenda
   if (!isVisible || !job) return null;
 
   return (
-    <div className="job-modal-backdrop" onClick={handleBackdropClick}>
-      <div className="job-modal-container">
-        {/* 헤더 영역 */}
-        <div className="job-modal-header">
-          <h2 className="job-modal-title">{job.title}</h2>
-          <button 
-            className="job-modal-close" 
-            onClick={onClose}
-            aria-label="모달 닫기"
-          >
-            ✕
-          </button>
-        </div>
-
-        {/* 메인 정보 영역 */}
-        <div className="job-modal-content">
-          {/* 급여 정보 - 강조 표시 */}
-          <div className="job-wage-section">
-            <div className="job-wage-amount">
-              💰 {formatWage(job.hourly_wage)}
-            </div>
+    <>
+      <div className="job-modal-backdrop" onClick={handleBackdropClick}>
+        <div className="job-modal-container">
+          {/* 헤더 영역 */}
+          <div className="job-modal-header">
+            <h2 className="job-modal-title">{job.title}</h2>
+            <button 
+              className="job-modal-close" 
+              onClick={onClose}
+              aria-label="모달 닫기"
+            >
+              ✕
+            </button>
           </div>
 
-          {/* 기본 정보 그리드 */}
-          <div className="job-info-grid">
-            <div className="job-info-item">
-              <span className="job-info-label">📍 장소</span>
-              <div className="job-info-value">
-                <div className="job-place">{job.place}</div>
-                {job.address && (
-                  <div className="job-address">{job.address}</div>
-                )}
+          {/* 메인 정보 영역 */}
+          <div className="job-modal-content">
+            {/* 급여 정보 - 강조 표시 */}
+            <div className="job-wage-section">
+              <div className="job-wage-amount">
+                💰 {formatWage(job.hourly_wage)}
               </div>
             </div>
 
-            <div className="job-info-item">
-              <span className="job-info-label">⏰ 근무시간</span>
-              <div className="job-info-value">
-                <div className="job-time">{formatTime(job.start_time, job.end_time)}</div>
-                <div className="job-days">{formatWorkDays(job.work_days)}</div>
-              </div>
-            </div>
-
-            {job.participants && (
+            {/* 기본 정보 그리드 */}
+            <div className="job-info-grid">
               <div className="job-info-item">
-                <span className="job-info-label">👥 모집인원</span>
+                <span className="job-info-label">📍 장소</span>
                 <div className="job-info-value">
-                  <div className="job-participants">{job.participants}명</div>
+                  <div className="job-place">{job.place}</div>
+                  {job.address && (
+                    <div className="job-address">{job.address}</div>
+                  )}
+                </div>
+              </div>
+
+              <div className="job-info-item">
+                <span className="job-info-label">⏰ 근무시간</span>
+                <div className="job-info-value">
+                  <div className="job-time">{formatTime(job.start_time, job.end_time)}</div>
+                  <div className="job-days">{formatWorkDays(job.work_days)}</div>
+                </div>
+              </div>
+
+              {job.participants && (
+                <div className="job-info-item">
+                  <span className="job-info-label">👥 모집인원</span>
+                  <div className="job-info-value">
+                    <div className="job-participants">{job.participants}명</div>
+                  </div>
+                </div>
+              )}
+
+              {job.client && (
+                <div className="job-info-item">
+                  <span className="job-info-label">🏢 의뢰기관</span>
+                  <div className="job-info-value">
+                    <div className="job-client">{job.client}</div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* 업무 설명 */}
+            {job.description && (
+              <div className="job-description-section">
+                <h3 className="job-description-title">📝 업무내용</h3>
+                <div className="job-description-content">
+                  {job.description}
                 </div>
               </div>
             )}
 
-            {job.client && (
-              <div className="job-info-item">
-                <span className="job-info-label">🏢 의뢰기관</span>
-                <div className="job-info-value">
-                  <div className="job-client">{job.client}</div>
+            {/* 추천 이유 섹션 - showRecommendationReason이 true이고 reason이 있을 때만 표시 */}
+            {showRecommendationReason && job.reason && (
+              <div className="job-description-section">
+                <h3 className="job-description-title">💡 추천 이유</h3>
+                <div className="job-description-content">
+                  {job.reason}
                 </div>
               </div>
             )}
           </div>
 
-          {/* 업무 설명 */}
-          {job.description && (
-            <div className="job-description-section">
-              <h3 className="job-description-title">📝 업무내용</h3>
-              <div className="job-description-content">
-                {job.description}
-              </div>
-            </div>
-          )}
-
-          {/* 추천 이유 섹션 - showRecommendationReason이 true이고 reason이 있을 때만 표시 */}
-          {showRecommendationReason && job.reason && (
-            <div className="job-description-section">
-              <h3 className="job-description-title">💡 추천 이유</h3>
-              <div className="job-description-content">
-                {job.reason}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* 하단 버튼 영역 */}
-        <div className="job-modal-actions">
-          <button className="job-apply-button">
-            지원하기
-          </button>
-          <button className="job-close-button" onClick={onClose}>
-            닫기
-          </button>
+          {/* 하단 버튼 영역 */}
+          <div className="job-modal-actions">
+            <button className="job-apply-button" onClick={handleApplyClick}>
+              지원하기
+            </button>
+            <button className="job-close-button" onClick={onClose}>
+              닫기
+            </button>
+          </div>
         </div>
       </div>
-    </div>
+
+      {/* 지원 신청 모달 */}
+      <JobApplicationModal
+        job={job}
+        userId={userId}
+        isVisible={showApplicationModal}
+        onClose={handleApplicationModalClose}
+      />
+    </>
   );
 }

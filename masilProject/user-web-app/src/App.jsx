@@ -8,6 +8,7 @@ import HomePage from './pages/HomePage';
 import SignUpForm from './components/SignUpForm';
 import LoginForm from './components/LoginForm';
 import ActivityListPage from './pages/ActivityListPage';
+import MyProfilePage from './pages/MyProfilePage';
 import AdminPage from './pages/AdminPage';
 
 // 레이아웃 래퍼 컴포넌트 생성
@@ -46,6 +47,7 @@ function AppContent({ user, session, loading }) {
           <>
             {/* 로그인한 사용자용 라우트 - session 정보 전달 */}
             <Route path="/activities" element={<ActivityListPage session={session} />} />
+            <Route path="/my-profile" element={<MyProfilePage session={session} />} />
             <Route path="/admin" element={<AdminPage />} />
             {/* 로그인한 상태에서 루트 경로 접근 시 활동 목록으로 리다이렉트 */}
             <Route path="/" element={<Navigate to="/activities" replace />} />

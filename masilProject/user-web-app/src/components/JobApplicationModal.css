@@ -1,0 +1,407 @@
+/* src/components/JobApplicationModal.css */
+
+/* CSS 변수 정의 */
+:root {
+  --primary-color: #2C3E50;
+  --accent-color: #BFCC6B;
+  --background-color: #ffffff;
+  --text-primary: #2C3E50;
+  --text-secondary: #5A6C7D;
+  --border-color: #E8ECEF;
+  --shadow-color: rgba(44, 62, 80, 0.15);
+  --blur-backdrop: rgba(0, 0, 0, 0.6);
+  --success-green: #27AE60;
+  --success-light: #E8F8F0;
+  --error-red: #e74c3c;
+  --error-light: #fef2f2;
+}
+
+/* Pretendard 폰트 적용 */
+.application-modal-backdrop,
+.application-modal-container,
+.application-modal-container * {
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans KR', sans-serif;
+}
+
+/* 모달 배경 (블러 효과) */
+.application-modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--blur-backdrop);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1100; /* JobDetailModal보다 높게 */
+  padding: 20px;
+  box-sizing: border-box;
+  animation: fadeIn 0.3s ease-out;
+  min-height: 100vh;
+  min-width: 100vw;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    backdrop-filter: blur(0px);
+    -webkit-backdrop-filter: blur(0px);
+  }
+  to {
+    opacity: 1;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+}
+
+/* 지원 신청 모달 컨테이너 (작은 사각형) */
+.application-modal-container {
+  background: var(--background-color);
+  border-radius: 20px;
+  max-width: 400px;
+  width: 100%;
+  max-height: 500px;
+  overflow: hidden;
+  box-shadow: 0 25px 50px var(--shadow-color);
+  animation: slideUp 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  margin: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(40px) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* 모달 헤더 */
+.application-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 24px 24px 16px;
+  background: linear-gradient(135deg, var(--primary-color) 0%, #34495e 100%);
+  color: white;
+}
+
+.application-modal-title {
+  font-size: 20px;
+  font-weight: 700;
+  margin: 0;
+  color: white;
+}
+
+.application-modal-close {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: white;
+  font-size: 24px;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  flex-shrink: 0;
+}
+
+.application-modal-close:hover,
+.application-modal-close:active {
+  background: var(--accent-color);
+  transform: scale(1.1);
+}
+
+/* 모달 콘텐츠 영역 */
+.application-modal-content {
+  padding: 24px;
+  flex: 1;
+}
+
+/* 지원 신청 폼 */
+.application-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.job-summary {
+  background: #f8f9fa;
+  padding: 16px;
+  border-radius: 12px;
+  border-left: 4px solid var(--accent-color);
+}
+
+.job-summary h4 {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 8px 0;
+  line-height: 1.3;
+}
+
+.job-info {
+  font-size: 15px;
+  color: var(--text-secondary);
+  margin: 0;
+  line-height: 1.4;
+}
+
+.application-message {
+  text-align: center;
+}
+
+.application-message p {
+  font-size: 17px;
+  color: var(--text-primary);
+  margin: 0 0 12px 0;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.application-note {
+  font-size: 14px !important;
+  color: var(--text-secondary) !important;
+  font-weight: 400 !important;
+  margin: 0 !important;
+}
+
+/* 성공 상태 */
+.application-success {
+  text-align: center;
+  padding: 20px 0;
+}
+
+.success-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  animation: successBounce 0.6s ease-out;
+}
+
+@keyframes successBounce {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.application-success h3 {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--success-green);
+  margin: 0 0 16px 0;
+}
+
+.application-success p {
+  font-size: 16px;
+  color: var(--text-secondary);
+  margin: 0 0 12px 0;
+  line-height: 1.5;
+}
+
+.success-note {
+  font-size: 14px !important;
+  color: var(--text-secondary) !important;
+  font-style: italic;
+}
+
+/* 에러 메시지 */
+.application-error {
+  background: var(--error-light);
+  border: 1px solid #fecaca;
+  color: var(--error-red);
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  text-align: center;
+  margin-top: 8px;
+}
+
+/* 버튼 영역 */
+.application-modal-actions {
+  padding: 16px 24px 24px;
+  border-top: 1px solid var(--border-color);
+  background: #fafbfc;
+  display: flex;
+  gap: 12px;
+}
+
+.application-cancel-btn,
+.application-submit-btn {
+  flex: 1;
+  height: 48px;
+  font-size: 16px;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: none;
+  font-family: inherit;
+}
+
+.application-cancel-btn {
+  background: transparent;
+  color: var(--text-secondary);
+  border: 2px solid var(--border-color);
+}
+
+.application-cancel-btn:hover:not(:disabled) {
+  background: var(--text-secondary);
+  color: white;
+  transform: translateY(-1px);
+}
+
+.application-submit-btn {
+  background: var(--primary-color);
+  color: white;
+}
+
+.application-submit-btn:hover:not(:disabled) {
+  background: var(--accent-color);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(44, 62, 80, 0.2);
+}
+
+.application-cancel-btn:disabled,
+.application-submit-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+/* 모바일 최적화 */
+@media (max-width: 768px) {
+  .application-modal-backdrop {
+    padding: 16px;
+  }
+  
+  .application-modal-container {
+    max-width: 100%;
+    max-height: 90vh;
+    border-radius: 16px;
+  }
+  
+  .application-modal-header {
+    padding: 20px 20px 12px;
+  }
+  
+  .application-modal-title {
+    font-size: 18px;
+  }
+  
+  .application-modal-close {
+    width: 36px;
+    height: 36px;
+    font-size: 20px;
+  }
+  
+  .application-modal-content {
+    padding: 20px;
+  }
+  
+  .job-summary {
+    padding: 14px;
+  }
+  
+  .job-summary h4 {
+    font-size: 17px;
+  }
+  
+  .job-info {
+    font-size: 14px;
+  }
+  
+  .application-message p {
+    font-size: 16px;
+  }
+  
+  .application-note {
+    font-size: 13px !important;
+  }
+  
+  .application-success h3 {
+    font-size: 20px;
+  }
+  
+  .application-success p {
+    font-size: 15px;
+  }
+  
+  .application-modal-actions {
+    padding: 14px 20px 20px;
+    gap: 10px;
+  }
+  
+  .application-cancel-btn,
+  .application-submit-btn {
+    height: 44px;
+    font-size: 15px;
+  }
+}
+
+@media (max-width: 480px) {
+  .application-modal-backdrop {
+    padding: 12px;
+  }
+  
+  .application-modal-container {
+    border-radius: 12px;
+  }
+  
+  .application-modal-header {
+    padding: 16px 16px 8px;
+  }
+  
+  .application-modal-title {
+    font-size: 16px;
+  }
+  
+  .application-modal-content {
+    padding: 16px;
+  }
+  
+  .job-summary {
+    padding: 12px;
+  }
+  
+  .job-summary h4 {
+    font-size: 16px;
+  }
+  
+  .job-info {
+    font-size: 13px;
+  }
+  
+  .application-message p {
+    font-size: 15px;
+  }
+  
+  .application-modal-actions {
+    padding: 12px 16px 16px;
+  }
+  
+  .application-cancel-btn,
+  .application-submit-btn {
+    height: 42px;
+    font-size: 14px;
+  }
+}

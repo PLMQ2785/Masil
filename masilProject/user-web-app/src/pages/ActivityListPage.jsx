@@ -1,5 +1,6 @@
 // src/pages/ActivityListPage.jsx
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import MapComponent from '../components/MapComponent';
 import BottomNavBar from '../components/BottomNavBar';
 import VoiceModal from '../components/VoiceModal';
@@ -9,6 +10,7 @@ export default function ActivityListPage({ session }) {
   const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showVoiceModal, setShowVoiceModal] = useState(false);
+  const navigate = useNavigate();
   
   // 추천 모드 상태 관리
   const [isRecommendationMode, setIsRecommendationMode] = useState(false);
@@ -102,6 +104,12 @@ export default function ActivityListPage({ session }) {
     setSelectedTab('list');
   };
 
+  // 나의 정보 버튼 클릭 핸들러
+  const handleProfileClick = () => {
+    console.log('👤 나의 정보 버튼 클릭됨');
+    navigate('/my-profile');
+  };
+
   // 추천 완료 핸들러
   const handleRecommendationComplete = (count, jobs = []) => {
     setRecommendationCount(count);
@@ -182,6 +190,7 @@ export default function ActivityListPage({ session }) {
       <BottomNavBar 
         onMicClick={handleMicClick}
         onJobListClick={handleJobListClick}
+        onProfileClick={handleProfileClick}
         initialSelected={selectedTab} 
       />
 
