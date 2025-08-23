@@ -2,6 +2,7 @@ from datetime import date
 from typing import Any, Dict, List, Optional
 from uuid import UUID
 from pydantic import BaseModel, Field
+from enum import Enum
 
 class Job(BaseModel):
     title: str
@@ -54,5 +55,18 @@ class UserProfileUpdate(BaseModel):
     availability_json: Optional[Dict[str, Any]] = None
     work_history: Optional[str] = None
     ability_physical: Optional[int] = Field(None, ge=1, le=3)
-    preferred_environment: Optional[str] = Field(None, pattern="^(indoor|outdoor|any)$")
+    preferred_environment: Optional[str] = Field(None)
     max_travel_time_min: Optional[int] = Field(None, gt=0)
+    
+# status 필드에 허용되는 값들을 Enum으로 정의
+class EngagementStatus(str, Enum):
+    SAVED = 'saved'
+    APPLIED = 'applied'
+    COMPLETED = 'completed'
+    CANCELLED = 'cancelled'
+    REJECTED = 'rejected'
+    DISMISSED = 'dismissed'
+
+# API 요청 본문(body)의 형식을 정의하는 Pydantic 모델
+class EngagementStatusUpdate(BaseModel):
+    status: EngagementStatus

@@ -62,8 +62,59 @@ def build_prompt_for_reason(candidate, user_info, query):
 def generate_fallback_reason(candidate):
     return f"'{candidate.get('title')}'은(는) 사용자님의 요청과 관련성이 높아 추천합니다."
 
+SERVICE_AREAS = ["서울특별시 강동구", "서울특별시 송파구", "서울특별시 강남구"] # 예시 지역
 
 def run_rag_pipeline(user_id: UUID, query: str, k: int, exclude_ids: Optional[List[int]] = None, current_latitude: Optional[float] = None, current_longitude: Optional[float] = None) -> dict:
+    
+    # --- 👇 0단계: 사용자 요청에서 지역 추출 및 검사 ---
+    try:
+        # LLM에게 지역명 추출을 요청하는 프롬프트
+        location_extraction_prompt = f"""
+        사용자의 질문에서 언급된 '지역명'이나 '도시 이름'을 모두 추출해주세요.
+        만약 지역명이 언급되지 않았다면, "없음"이라고만 답변해주세요.
+
+        사용자 질문: "{query}"
+        추출된 지역명:
+        """
+        location_response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": location_extraction_prompt}]
+        )
+        extracted_location = location_response.choices[0].message.content.strip()
+
+        # 추출된 지역이 서비스 지역 밖인지 확인
+        is_out_of_service = False
+        if extracted_location and extracted_location != "없음":
+            # SERVICE_AREAS에 추출된 지역명이 포함되지 않으면 True
+            if not any(area in extracted_location for area in SERVICE_AREAS):
+                is_out_of_service = True
+
+        # --- 👇 3단계: 서비스 지역 외 요청 처리 ---
+        if is_out_of_service:
+            print(f"--- 서비스 지역 외 요청 감지: {extracted_location} ---")
+            
+            # 서비스 불가 안내 메시지를 LLM으로 생성
+            out_of_service_prompt = f"""
+            당신은 사용자에게 서비스 정책을 친절하게 안내하는 AI 비서입니다.
+            사용자가 서비스 지역이 아닌 '{extracted_location}'의 일자리를 요청했습니다.
+            현재 서비스는 '{', '.join(SERVICE_AREAS)}' 지역만 가능하다는 점을 정중하게 설명하고,
+            향후 서비스 지역 확대를 위해 노력하겠다는 메시지를 담아 2~3 문장으로 답변해주세요.
+            """
+            response = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[{"role": "user", "content": out_of_service_prompt}]
+            )
+            answer = response.choices[0].message.content
+            
+            # 추천 파이프라인을 중단하고 안내 메시지만 반환
+            return {"answer": answer, "jobs": []}
+
+    except Exception as e:
+        print(f"--- 지역 검사 중 에러 발생: {e} ---")
+        # 이 단계에서 에러가 발생해도 전체 추천이 멈추지 않도록 계속 진행
+    
+    # --- 👆 지역 검사 로직 끝 👆 ---
+    
     
     ab_test_flag = "llm"
 
@@ -103,7 +154,7 @@ def run_rag_pipeline(user_id: UUID, query: str, k: int, exclude_ids: Optional[Li
         """
     
     rewrite_response = client.chat.completions.create(
-        model="gpt-5-nano", # 재작성은 가벼운 모델로도 충분합니다.
+        model="gpt-5-mini", # 재작성은 가벼운 모델로도 충분합니다.
         messages=[{"role": "user", "content": rewrite_prompt}],
     )
     
@@ -234,7 +285,10 @@ def run_rag_pipeline(user_id: UUID, query: str, k: int, exclude_ids: Optional[Li
     # 4. 필터링 및 재정렬 (Reranking)
     
     if ab_test_flag == "llm":    
-            print("--- LLM 기반 점수 계산 실행 ---")
+            print("--- LLM 기반 점수 계산 실행 (Chunking 방식) ---")
+
+            score_map = {}
+            chunk_size = 30  # 한 번에 처리할 후보 수 (20~30개가 적당)
 
             # LLM에게 전달할 후보군 정보 구성
             # 1. LLM 호출을 반복문 밖에서 딱 한 번만 실행합니다.
@@ -243,67 +297,117 @@ def run_rag_pipeline(user_id: UUID, query: str, k: int, exclude_ids: Optional[Li
             #     for job in candidates
             # ]
             
-            candidates_for_prompt = []
-            for job in candidates:
-                job_info = {key: value for key, value in job.items() if key != 'embedding'}
-                job_info['work_days_text'] = format_work_days(job.get('work_days'))
-                candidates_for_prompt.append(job_info)
+            # --- 👇 청킹(Chunking) 로직 👇 ---
+            for i in range(0, len(candidates), chunk_size):
+                # 1. 전체 후보 목록을 작은 덩어리(chunk)로 자릅니다.
+                chunk = candidates[i:i + chunk_size]
+                print(f"--- Chunk {i//chunk_size + 1} 처리 중 ({len(chunk)}개 항목) ---")
+
+                candidates_for_prompt = [
+                    {key: value for key, value in job.items() if key != 'embedding'}
+                    for job in chunk
+                ]
+            
+            # candidates_for_prompt = []
+            # for job in candidates:
+            #     job_info = {key: value for key, value in job.items() if key != 'embedding'}
+            #     job_info['work_days_text'] = format_work_days(job.get('work_days'))
+            #     candidates_for_prompt.append(job_info)
             
             
             # LLM에 전달할 프롬프트 설계 (점수 계산 역할 명시)
-            scoring_prompt = f"""
-                당신은 사용자의 프로필과 선호도에 맞춰 일자리를 추천하는 최고의 AI 전문가입니다.
-                [사용자 정보]와 [일자리 후보 목록]을 주의 깊게 읽고, 각 일자리가 사용자의 [질문]에 얼마나 적합한지 평가해주세요.
+            # --- 👇 프롬프트 강화 ---
+                scoring_prompt = f"""
+                    당신은 사용자의 프로필과 선호도에 맞춰 일자리를 추천하는 최고의 AI 전문가입니다.
+                    [사용자 정보]와 [일자리 후보 목록]을 주의 깊게 읽고, 각 일자리가 사용자의 [질문]에 얼마나 적합한지 평가해주세요.
 
-                [역할]
-                1.  [일자리 후보 목록]에 있는 각 일자리에 대해, 사용자와의 적합도를 0.0에서 1.0 사이의 'match_score'로 계산합니다. 점수가 높을수록 더 적합합니다.
-                2.  모든 후보에 대한 평가 점수를 아래 [출력 형식]과 완벽하게 일치하는 단일 JSON 객체로 반환합니다.
+                    [역할]
+                    1. [일자리 후보 목록]에 있는 **모든 일자리 각각**에 대해, 사용자와의 적합도를 0.0에서 1.0 사이의 'match_score'로 계산합니다.
+                    2. 점수가 높을수록 더 적합하며, **조건에 맞지 않는다고 생각되면 반드시 낮은 점수(예: 0.1)를 부여**해야 합니다.
+                    3. 모든 후보에 대한 평가 점수를 아래 [출력 형식]과 완벽하게 일치하는 단일 JSON 객체로 반환해야 합니다. **다른 설명은 절대 추가하지 마세요.**
 
-                [엄격한 규칙]
-                - 만약 사용자가 '주중 근무'를 원하는데 일자리의 'work_days_text'에 '토' 또는 '일'이 포함되어 있다면, match_score를 0.2점 이하로 부여해야 합니다.
-                - 만약 사용자가 '실내 근무'를 원하는데 일자리의 내용에 '야외 활동'이 명시되어 있다면, match_score를 0.2점 이하로 부여해야 합니다.
-                
-                [사용자 정보]
-                - 나이: {calculate_age(user_ctx.get('date_of_birth'))}세
-                - 선호 직무: {user_ctx.get('preferred_jobs')}
-                - 관심사: {user_ctx.get('interests')}
-                - 과거 경험: {user_ctx.get('work_history')}
-                - 최대 이동 가능 시간: {user_ctx.get('max_travel_time_min')}분
+                    [사용자 정보]
+                    - 나이: {calculate_age(user_ctx.get('date_of_birth'))}세
+                    - 선호 직무: {user_ctx.get('preferred_jobs')}
+                    - 관심사: {user_ctx.get('interests')}
+                    - 과거 경험: {user_ctx.get('work_history')}
 
-                [질문]
-                {query}
+                    [질문]
+                    {query}
 
-                [일자리 후보 목록]
-                {json.dumps(candidates_for_prompt, indent=2, ensure_ascii=False)}
+                    [일자리 후보 목록]
+                    {json.dumps(candidates_for_prompt, indent=2, ensure_ascii=False)}
 
-                [출력 형식]
-                {{
-                "scores": [
+                    [출력 형식]
                     {{
-                    "job_id": <첫 번째 job_id>,
-                    "match_score": <계산된 점수 (예: 0.9258)>
-                    }},
-                ]
-                }}
-                """
-            scoring_response = client.chat.completions.create(
-                    model="gpt-5-nano",
-                    messages=[{"role": "user", "content": scoring_prompt}],
-                    response_format={"type": "json_object"}
-                )
-        
-            scoring_result = json.loads(scoring_response.choices[0].message.content)
-            # 2. LLM의 결과를 score_map에 저장해 둡니다.
-            score_map = {item['job_id']: item['match_score'] for item in scoring_result.get('scores', [])}
+                    "scores": [
+                        {{
+                        "job_id": <첫 번째 job_id>,
+                        "match_score": <계산된 점수>
+                        }}
+                    ]
+                    }}
+                    """
+                # scoring_response = client.chat.completions.create(
+                #         model="gpt-5-nano",
+                #         messages=[{"role": "user", "content": scoring_prompt}],
+                #         response_format={"type": "json_object"}
+                #     )
+                
+                # raw_llm_response = scoring_response.choices[0].message.content
+                
+                # # --- 👇 디버깅을 위해 LLM의 원본 응답을 출력합니다 ---
+                # print("--- LLM Score Response (Raw) ---")
+                # print(raw_llm_response)
+                # print("---------------------------------")
+                # # --- 👆 디버깅 코드 끝 👆 ---
+            
+                # scoring_result = json.loads(scoring_response.choices[0].message.content)
+                # # 2. LLM의 결과를 score_map에 저장해 둡니다.
+                # # score_map = {item['job_id']: item['match_score'] for item in scoring_result.get('scores', [])}
+                # # --- 👇 핵심 수정 사항: .update() 사용 ---
+                # # 각 덩어리의 결과를 전체 점수 맵(score_map)에 합칩니다.
+                # chunk_scores = {item['job_id']: item['match_score'] for item in scoring_result.get('scores', [])}
+                # score_map.update(chunk_scores)
+                # # --- 👆 수정 끝 👆 ---
+                
+                try:
+                    scoring_response = client.chat.completions.create(
+                        model="gpt-4.1", # gpt-5-nano 대신 gpt-4o 권장
+                        messages=[{"role": "user", "content": scoring_prompt}],
+                        response_format={"type": "json_object"}
+                    )
+                    
+                    scoring_result = json.loads(scoring_response.choices[0].message.content)
+
+                    # --- 👇 디버깅을 위해 LLM의 원본 응답을 출력합니다 ---
+                    print("--- LLM Score Response (Raw) ---")
+                    print(scoring_result)
+                    print("---------------------------------")
+                    # --- 👆 디버깅 코드 끝 👆 ---
+
+                    # --- 👇 핵심 수정 사항: .update() 사용 ---
+                    # 각 덩어리의 결과를 전체 점수 맵(score_map)에 합칩니다.
+                    chunk_scores = {item['job_id']: item['match_score'] for item in scoring_result.get('scores', [])}
+                    score_map.update(chunk_scores)
+                    # --- 👆 수정 끝 👆 ---
+
+                except Exception as e:
+                    print(f"--- Chunk 처리 중 에러 발생, 해당 Chunk는 건너뜁니다: {e} ---")
+                    continue
+            
+            print(f"--- 전체 {len(score_map)}개 항목에 대한 LLM 점수 계산 완료 ---")
     
-    
+    print("--- 재정렬 시작 ---")
     reranked_jobs = []
     
+    print("--- 임금통계 계산 ---")
     # 지역별 임금 통계 사전 계산
     by_place: Dict[str, List[Dict[str, Any]]] = {}
     for c in candidates:
         by_place.setdefault(c.get("place", ""), []).append(c)
     
+    print("--- 점수 할당 ---")
     for job in candidates:
         base_lat = current_latitude if current_latitude is not None else user_ctx.get('home_latitude')
         base_lon = current_longitude if current_longitude is not None else user_ctx.get('home_longitude')
@@ -361,8 +465,8 @@ def run_rag_pipeline(user_id: UUID, query: str, k: int, exclude_ids: Optional[Li
     
     # --- 👆 로직 추가 끝 👆 ---
     
-    # top_k_jobs = reranked_jobs[:k]
-    top_k_jobs = qualified_jobs[:k]
+    top_k_jobs = reranked_jobs[:k]
+    # top_k_jobs = qualified_jobs[:k]
     
     if not top_k_jobs:
         return {"answer": "조건에 맞는 소일거리를 찾지 못했습니다.", "jobs": []}
@@ -381,6 +485,7 @@ def run_rag_pipeline(user_id: UUID, query: str, k: int, exclude_ids: Optional[Li
     #     for job in top_k_jobs
     # ]
     
+    print("--- 이유 생성 ---")
     # 모든 추천 이유를 한 번에 생성하도록 하는 프롬프트
     top_k_for_prompt = []
     for job in top_k_jobs:
@@ -421,7 +526,7 @@ def run_rag_pipeline(user_id: UUID, query: str, k: int, exclude_ids: Optional[Li
     try:
         # LLM을 딱 한 번만 호출합니다.
         reason_response = client.chat.completions.create(
-            model="gpt-5-nano",
+            model="gpt-4.1",
             messages=[{"role": "user", "content": reason_generation_prompt}],
             response_format={"type": "json_object"}
         )
@@ -440,6 +545,7 @@ def run_rag_pipeline(user_id: UUID, query: str, k: int, exclude_ids: Optional[Li
             job['reason'] = generate_fallback_reason(job)
 
     # 6. 최종 답변 생성
+    print("--- 최종 답변 생성 ---")
     context = "\n\n".join([f"- 제목: {job['title']}\n- 내용: {job['description']}" for job in top_k_jobs])
     prompt = f"""당신은 시니어 사용자에게 일자리를 추천하는 따뜻하고 친절한 AI 비서 '잡있으'입니다.
                 당신의 목표는 아래 [검색된 일자리 정보]와 사용자의 [질문]을 종합하여 개인화된 추천 메시지를 새로 작성하는 것입니다.
@@ -449,7 +555,7 @@ def run_rag_pipeline(user_id: UUID, query: str, k: int, exclude_ids: Optional[Li
                 3. 사용자의 원래 질문의 핵심(예: '조용한', '컴퓨터')을 답변에 자연스럽게 포함시키세요.
                 4. 최종 답변은 2~3 문장으로 완성하세요.
                 [검색된 일자리 정보]\n{context}\n[질문]\n{query}\n[추천 메시지]"""
-    chat_response = client.chat.completions.create(model="gpt-5-nano", messages=[{"role": "user", "content": prompt}])
+    chat_response = client.chat.completions.create(model="gpt-4.1", messages=[{"role": "user", "content": prompt}])
     answer = chat_response.choices[0].message.content
 
     return {"answer": answer, "jobs": top_k_jobs}
