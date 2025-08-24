@@ -16,14 +16,107 @@ export default function ActivityListPage({ session }) {
   const [isRecommendationMode, setIsRecommendationMode] = useState(false);
   const [selectedTab, setSelectedTab] = useState('');
   const [recommendationCount, setRecommendationCount] = useState(0);
-  const [recommendedJobs, setRecommendedJobs] = useState([]); // 추천된 일자리 목록 저장
+  const [recommendedJobs, setRecommendedJobs] = useState([]); // 추천된 소일거리 목록 저장
+  
+  // 🆕 음성 추천 모드 상태 추가
+  const [isVoiceRecommendationMode, setIsVoiceRecommendationMode] = useState(false);
+  const [voiceRecommendedJobs, setVoiceRecommendedJobs] = useState([]);
+  
+  // ✅ 새로운 상태: 툴팁 표시 여부 (초기에만 표시)
+  const [showTooltips, setShowTooltips] = useState(true);
   
   // 실제 로그인된 사용자 ID 사용
   const userId = session?.user?.id;
 
+  // 🆕 localStorage 키 정의
+  const STORAGE_KEYS = {
+    AI_RECOMMENDATION_MODE: 'jobis_ai_recommendation_mode',
+    AI_RECOMMENDED_JOBS: 'jobis_ai_recommended_jobs',
+    VOICE_RECOMMENDATION_MODE: 'jobis_voice_recommendation_mode',
+    VOICE_RECOMMENDED_JOBS: 'jobis_voice_recommended_jobs',
+    RECOMMENDATION_COUNT: 'jobis_recommendation_count'
+  };
+
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
+
+  // 🆕 상태 복원 함수
+  const restoreState = () => {
+    try {
+      // AI 추천 상태 복원
+      const savedAIMode = localStorage.getItem(STORAGE_KEYS.AI_RECOMMENDATION_MODE);
+      const savedAIJobs = localStorage.getItem(STORAGE_KEYS.AI_RECOMMENDED_JOBS);
+      const savedRecommendationCount = localStorage.getItem(STORAGE_KEYS.RECOMMENDATION_COUNT);
+      
+      if (savedAIMode === 'true' && savedAIJobs) {
+        const aiJobs = JSON.parse(savedAIJobs);
+        setIsRecommendationMode(true);
+        setRecommendedJobs(aiJobs);
+        setRecommendationCount(parseInt(savedRecommendationCount) || aiJobs.length);
+        setSelectedTab('list');
+        console.log('✅ AI 추천 상태 복원:', aiJobs.length + '개');
+        return; // AI 모드가 활성화되어 있으면 음성 모드 체크하지 않음
+      }
+      
+      // 음성 추천 상태 복원
+      const savedVoiceMode = localStorage.getItem(STORAGE_KEYS.VOICE_RECOMMENDATION_MODE);
+      const savedVoiceJobs = localStorage.getItem(STORAGE_KEYS.VOICE_RECOMMENDED_JOBS);
+      
+      if (savedVoiceMode === 'true' && savedVoiceJobs) {
+        const voiceJobs = JSON.parse(savedVoiceJobs);
+        setIsVoiceRecommendationMode(true);
+        setVoiceRecommendedJobs(voiceJobs);
+        setSelectedTab('voice');
+        console.log('✅ 음성 추천 상태 복원:', voiceJobs.length + '개');
+      }
+      
+    } catch (error) {
+      console.error('❌ 상태 복원 실패:', error);
+      // 오류 발생 시 localStorage 정리
+      clearStoredStates();
+    }
+  };
+
+  // 🆕 상태 저장 함수들
+  const saveAIRecommendationState = (jobs, count) => {
+    try {
+      localStorage.setItem(STORAGE_KEYS.AI_RECOMMENDATION_MODE, 'true');
+      localStorage.setItem(STORAGE_KEYS.AI_RECOMMENDED_JOBS, JSON.stringify(jobs));
+      localStorage.setItem(STORAGE_KEYS.RECOMMENDATION_COUNT, count.toString());
+      // 음성 추천 상태는 제거
+      localStorage.removeItem(STORAGE_KEYS.VOICE_RECOMMENDATION_MODE);
+      localStorage.removeItem(STORAGE_KEYS.VOICE_RECOMMENDED_JOBS);
+      console.log('💾 AI 추천 상태 저장 완료');
+    } catch (error) {
+      console.error('❌ AI 추천 상태 저장 실패:', error);
+    }
+  };
+
+  const saveVoiceRecommendationState = (jobs) => {
+    try {
+      localStorage.setItem(STORAGE_KEYS.VOICE_RECOMMENDATION_MODE, 'true');
+      localStorage.setItem(STORAGE_KEYS.VOICE_RECOMMENDED_JOBS, JSON.stringify(jobs));
+      // AI 추천 상태는 제거
+      localStorage.removeItem(STORAGE_KEYS.AI_RECOMMENDATION_MODE);
+      localStorage.removeItem(STORAGE_KEYS.AI_RECOMMENDED_JOBS);
+      localStorage.removeItem(STORAGE_KEYS.RECOMMENDATION_COUNT);
+      console.log('💾 음성 추천 상태 저장 완료');
+    } catch (error) {
+      console.error('❌ 음성 추천 상태 저장 실패:', error);
+    }
+  };
+
+  const clearStoredStates = () => {
+    try {
+      Object.values(STORAGE_KEYS).forEach(key => {
+        localStorage.removeItem(key);
+      });
+      console.log('🗑️ 저장된 상태 모두 정리 완료');
+    } catch (error) {
+      console.error('❌ 상태 정리 실패:', error);
+    }
+  };
 
   useEffect(() => {
     // 활동 데이터 로딩 (추후 API 연동)
@@ -66,24 +159,69 @@ export default function ActivityListPage({ session }) {
     setTimeout(() => {
       setActivities(mockActivities);
       setLoading(false);
+      
+      // 🆕 데이터 로딩 완료 후 상태 복원
+      restoreState();
     }, 1000);
+
+    // ✅ 새로운 기능: 10초 후 툴팁 자동 숨김
+    const tooltipTimer = setTimeout(() => {
+      setShowTooltips(false);
+    }, 10000); // 10초 후 툴팁 숨김
+
+    return () => {
+      clearTimeout(tooltipTimer);
+    };
   }, []);
 
-  // 마이크 버튼 클릭 핸들러
+  // 마이크 버튼 클릭 핸들러 - 🆕 토글 기능 추가
   const handleMicClick = () => {
-    console.log('🎤 마이크 버튼 클릭됨');
-    setShowVoiceModal(true);
-    setSelectedTab('voice');
+    if (isVoiceRecommendationMode) {
+      // 음성 추천 모드 비활성화
+      console.log('🎤 음성 추천 모드 비활성화');
+      setIsVoiceRecommendationMode(false);
+      setVoiceRecommendedJobs([]);
+      setSelectedTab('');
+      clearStoredStates(); // 저장된 상태 정리
+    } else {
+      // 음성 추천 모달 열기
+      console.log('🎤 마이크 버튼 클릭됨 - 음성 모달 열기');
+      setShowVoiceModal(true);
+      setSelectedTab('voice');
+    }
+    // ✅ 버튼 클릭 시 툴팁 숨김
+    setShowTooltips(false);
   };
 
   // 음성 모달 닫기 핸들러
   const handleCloseVoiceModal = () => {
     console.log('🎤 음성 모달 닫기');
     setShowVoiceModal(false);
-    setSelectedTab('');
+    // selectedTab은 유지 (음성 추천 모드가 활성화된 경우를 위해)
   };
 
-  // Job있으 버튼 클릭 핸들러
+  // 🆕 음성 추천 완료 핸들러
+  const handleVoiceRecommendationComplete = (voiceJobs) => {
+    console.log('🎯 음성 추천 완료 - 지도 모드 전환');
+    console.log('📊 음성 추천받은 소일거리들:', voiceJobs);
+    
+    // 음성 추천 모드로 전환
+    setIsVoiceRecommendationMode(true);
+    setVoiceRecommendedJobs(voiceJobs);
+    
+    // 기존 추천 모드는 해제
+    setIsRecommendationMode(false);
+    setRecommendedJobs([]);
+    setRecommendationCount(0);
+    
+    // 탭 상태 설정
+    setSelectedTab('voice');
+    
+    // 🆕 상태 저장
+    saveVoiceRecommendationState(voiceJobs);
+  };
+
+  // Job있으 버튼 클릭 핸들러 - 🆕 토글 기능 추가
   const handleJobListClick = () => {
     if (!userId) {
       console.error('❌ 사용자 ID가 없습니다. 로그인 상태를 확인해주세요.');
@@ -91,36 +229,73 @@ export default function ActivityListPage({ session }) {
       return;
     }
     
-    console.log('📋 Job있으 버튼 클릭됨 - AI 추천 모드 활성화');
-    console.log('🔍 사용할 사용자 ID:', userId);
-    console.log('👤 사용자 정보:', {
-      id: session?.user?.id,
-      phone: session?.user?.phone,
-      email: session?.user?.email,
-      nickname: session?.user?.user_metadata?.nickname
-    });
+    if (isRecommendationMode) {
+      // AI 추천 모드 비활성화
+      console.log('📋 AI 추천 모드 비활성화');
+      setIsRecommendationMode(false);
+      setRecommendedJobs([]);
+      setRecommendationCount(0);
+      setSelectedTab('');
+      clearStoredStates(); // 저장된 상태 정리
+    } else {
+      // AI 추천 모드 활성화
+      console.log('📋 Job있으 버튼 클릭됨 - AI 추천 모드 활성화');
+      console.log('🔍 사용할 사용자 ID:', userId);
+      console.log('👤 사용자 정보:', {
+        id: session?.user?.id,
+        phone: session?.user?.phone,
+        email: session?.user?.email,
+        nickname: session?.user?.user_metadata?.nickname
+      });
+      
+      // AI 추천 모드로 전환
+      setIsRecommendationMode(true);
+      
+      // 음성 추천 모드 해제
+      setIsVoiceRecommendationMode(false);
+      setVoiceRecommendedJobs([]);
+      
+      setSelectedTab('list');
+    }
     
-    setIsRecommendationMode(true);
-    setSelectedTab('list');
+    // ✅ 버튼 클릭 시 툴팁 숨김
+    setShowTooltips(false);
   };
 
   // 나의 정보 버튼 클릭 핸들러
   const handleProfileClick = () => {
     console.log('👤 나의 정보 버튼 클릭됨');
     navigate('/my-profile');
+    // ✅ 버튼 클릭 시 툴팁 숨김
+    setShowTooltips(false);
+    // 🆕 상태는 저장된 채로 유지됨 (페이지 이동 시에도 localStorage에 보존)
   };
 
-  // 추천 완료 핸들러
+  // 추천 완료 핸들러 - 🆕 상태 저장 추가
   const handleRecommendationComplete = (count, jobs = []) => {
     setRecommendationCount(count);
-    setRecommendedJobs(jobs); // 추천된 일자리 목록 저장
-    console.log(`✅ AI 추천 완료: ${count}개의 일거리 발견 (사용자 ID: ${userId})`);
-    console.log('📊 추천된 일자리 목록:', jobs);
+    setRecommendedJobs(jobs); // 추천된 소일거리 목록 저장
+    console.log(`✅ AI 추천 완료: ${count}개의 소일거리 발견 (사용자 ID: ${userId})`);
+    console.log('📊 추천된 소일거리 목록:', jobs);
+    
+    // 🆕 상태 저장
+    saveAIRecommendationState(jobs, count);
   };
 
   // 음성 모달에 전달할 excludeJobIds 생성
   const getExcludeJobIds = () => {
     return recommendedJobs.map(job => job.job_id);
+  };
+
+  // 헤더 제목 결정 로직
+  const getHeaderTitle = () => {
+    if (isVoiceRecommendationMode) {
+      return `🎤 음성 추천 소일거리 (${voiceRecommendedJobs.length}개)`;
+    } else if (isRecommendationMode) {
+      return `AI 추천 소일거리${recommendationCount > 0 ? ` (${recommendationCount}개)` : ''}`;
+    } else {
+      return '추천 소일거리 목록';
+    }
   };
 
   // 사용자 정보가 없는 경우 로딩 상태 표시
@@ -148,31 +323,27 @@ export default function ActivityListPage({ session }) {
       {/* 헤더 */}
       <div className="activity-header">
         <h1 className="activity-title">
-          {isRecommendationMode 
-            ? `AI 추천 일거리${recommendationCount > 0 ? ` (${recommendationCount}개)` : ''}` 
-            : '추천 활동 목록'
-          }
+          {getHeaderTitle()}
         </h1>
-        {isRecommendationMode && (
+        {(isRecommendationMode || isVoiceRecommendationMode) && (
           <p style={{ 
             fontSize: '14px', 
             color: '#666', 
             margin: '8px 0 0 0',
             textAlign: 'center'
           }}>
-            🤖 {session?.user?.user_metadata?.nickname || '사용자'}님 맞춤 추천 결과입니다
           </p>
         )}
       </div>
 
       {/* 지도 영역 */}
       <div className="map-container">
-        {loading && !isRecommendationMode ? (
+        {loading && !isRecommendationMode && !isVoiceRecommendationMode ? (
           <div className="map-loading">
             <div style={{ textAlign: 'center', color: '#2C3E50' }}>
               <div style={{ fontSize: '48px', marginBottom: '16px' }}>🗺️</div>
               <p style={{ fontSize: '18px', fontWeight: '600', margin: '0' }}>
-                사용자 맞춤 활동이 표시됩니다
+                사용자 맞춤 소일거리가 표시됩니다
               </p>
             </div>
           </div>
@@ -182,16 +353,22 @@ export default function ActivityListPage({ session }) {
             isRecommendationMode={isRecommendationMode}
             userId={userId}
             onRecommendationComplete={handleRecommendationComplete}
+            isVoiceRecommendationMode={isVoiceRecommendationMode}
+            voiceRecommendedJobs={voiceRecommendedJobs}
+            recommendedJobs={recommendedJobs} // 🆕 AI 추천 소일거리 목록 전달
           />
         )}
       </div>
 
-      {/* 하단 네비게이션 */}
+      {/* ✅ 수정: 하단 네비게이션에 활성화 상태 전달 */}
       <BottomNavBar 
         onMicClick={handleMicClick}
         onJobListClick={handleJobListClick}
         onProfileClick={handleProfileClick}
-        initialSelected={selectedTab} 
+        initialSelected={selectedTab}
+        showTooltips={showTooltips}
+        isJobListActive={isRecommendationMode} // 🆕 Job있으 버튼 활성화 상태
+        isVoiceActive={isVoiceRecommendationMode} // 🆕 마이크 버튼 활성화 상태
       />
 
       {/* 음성 모달 */}
@@ -200,6 +377,7 @@ export default function ActivityListPage({ session }) {
           onClose={handleCloseVoiceModal} 
           excludeJobIds={getExcludeJobIds()}
           userId={userId}
+          onVoiceRecommendationComplete={handleVoiceRecommendationComplete}
         />
       )}
     </div>

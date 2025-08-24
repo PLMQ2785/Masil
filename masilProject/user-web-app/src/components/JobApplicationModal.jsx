@@ -100,7 +100,7 @@ export default function JobApplicationModal({ job, userId, onClose, isVisible })
             <div className="application-success">
               <div className="success-icon">✅</div>
               <h3>지원 신청 완료!</h3>
-              <p>"{job.title}" 일자리에 성공적으로 지원하셨습니다.</p>
+              <p>"{job.title}" 소일거리에 성공적으로 지원하셨습니다.</p>
               <p className="success-note">담당자가 연락드릴 예정입니다.</p>
             </div>
           ) : (
@@ -114,7 +114,7 @@ export default function JobApplicationModal({ job, userId, onClose, isVisible })
               </div>
 
               <div className="application-message">
-                <p>이 일자리에 지원하시겠습니까?</p>
+                <p>이 소일거리에 지원하시겠습니까?</p>
                 <p className="application-note">
                   지원 완료 후 담당자가 연락드릴 예정입니다.
                 </p>
@@ -129,22 +129,22 @@ export default function JobApplicationModal({ job, userId, onClose, isVisible })
           )}
         </div>
 
-        {/* 버튼 영역 */}
+        {/* ✅ 수정: 버튼 영역 - 버튼 순서 변경 */}
         {!success && (
           <div className="application-modal-actions">
-            <button 
-              className="application-cancel-btn" 
-              onClick={onClose}
-              disabled={isSubmitting}
-            >
-              취소
-            </button>
             <button 
               className="application-submit-btn" 
               onClick={handleApply}
               disabled={isSubmitting}
             >
               {isSubmitting ? '지원 중...' : '지원하기'}
+            </button>
+            <button 
+              className="application-cancel-btn" 
+              onClick={onClose}
+              disabled={isSubmitting}
+            >
+              취소
             </button>
           </div>
         )}

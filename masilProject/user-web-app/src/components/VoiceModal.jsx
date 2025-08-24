@@ -3,11 +3,12 @@ import React, { useState, useEffect, useRef } from 'react';
 import ApiService from '../services/ApiService';
 import './VoiceModal.css';
 
-export default function VoiceModal({ onClose, excludeJobIds = [], userId }) {
+export default function VoiceModal({ onClose, excludeJobIds = [], userId, onVoiceRecommendationComplete }) {
   const [isRecording, setIsRecording] = useState(false);
   const [transcript, setTranscript] = useState('');
   const [phase, setPhase] = useState('ready'); // 'ready', 'recording', 'transcribing', 'processing', 'complete', 'recommendation'
   const [recommendedJob, setRecommendedJob] = useState(null);
+  const [recommendedJobs, setRecommendedJobs] = useState([]); // 전체 추천 소일거리 목록 저장
   const [error, setError] = useState(null);
   
   const mediaRecorderRef = useRef(null);
@@ -149,7 +150,7 @@ export default function VoiceModal({ onClose, excludeJobIds = [], userId }) {
   // 🆕 추천 처리 함수 (기존 processAudioRecording에서 분리)
   const processRecommendation = async (transcribedText) => {
     try {
-      console.log('🤖 일거리 추천 처리 시작... (사용자 ID:', userId, ')');
+      console.log('🤖 소일거리 추천 처리 시작... (사용자 ID:', userId, ')');
       setPhase('processing');
       
       // FormData 생성 (추천용)
@@ -179,16 +180,17 @@ export default function VoiceModal({ onClose, excludeJobIds = [], userId }) {
       if (result.jobs && result.jobs.length > 0) {
         const topJob = result.jobs[0]; // 첫 번째 추천 일거리
         setRecommendedJob(topJob);
+        setRecommendedJobs(result.jobs); // 🆕 전체 추천 소일거리 목록 저장
         setPhase('recommendation');
         // ⚠️ 주의: transcript는 여기서 덮어쓰지 않고 유지합니다
       } else {
         setPhase('complete');
-        setError('추천할 수 있는 일자리를 찾지 못했습니다.');
+        setError('추천할 수 있는 소일거리를 찾지 못했습니다.');
       }
 
     } catch (error) {
       console.error('⚠️ 추천 처리 실패:', error);
-      setError('일거리 추천 중 오류가 발생했습니다. 다시 시도해주세요.');
+      setError('소일거리 추천 중 오류가 발생했습니다. 다시 시도해주세요.');
       setPhase('ready');
     }
   };
@@ -198,6 +200,7 @@ export default function VoiceModal({ onClose, excludeJobIds = [], userId }) {
     setTranscript('');
     setIsRecording(false);
     setRecommendedJob(null);
+    setRecommendedJobs([]); // 🆕 추천 목록도 초기화
     setError(null);
     audioDataRef.current = null;
     
@@ -205,6 +208,20 @@ export default function VoiceModal({ onClose, excludeJobIds = [], userId }) {
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(track => track.stop());
     }
+  };
+
+  // 🆕 완료 버튼 클릭 핸들러 - 추천받은 소일거리들을 지도에 표시
+  const handleComplete = () => {
+    console.log('🎯 음성 추천 완료 - 추천받은 소일거리들을 지도에 표시');
+    console.log('📊 추천받은 소일거리 목록:', recommendedJobs);
+    
+    // 상위 컴포넌트(ActivityListPage)에 추천 완료 알림
+    if (onVoiceRecommendationComplete && recommendedJobs.length > 0) {
+      onVoiceRecommendationComplete(recommendedJobs);
+    }
+    
+    // 모달 닫기
+    onClose();
   };
 
   useEffect(() => {
@@ -225,13 +242,13 @@ export default function VoiceModal({ onClose, excludeJobIds = [], userId }) {
   const getStatusText = () => {
     switch (phase) {
       case 'ready':
-        return '편하게 말씀해주세요';
+        return '원하는 조건을 말씀하세요';
       case 'recording':
         return '듣고 있습니다...';
       case 'transcribing':
         return '말씀하신 내용';
       case 'processing':
-        return '일거리 찾는 중...';
+        return '소일거리 찾는 중...';
       case 'complete':
         return '음성 인식 완료';
       case 'recommendation':
@@ -276,7 +293,7 @@ export default function VoiceModal({ onClose, excludeJobIds = [], userId }) {
     
     const insights = [
       "당신의 관심사와 경험에 기반한 맞춤 추천입니다.",
-      "현재 시장에서 수요가 높은 분야의 일자리입니다.",
+      "현재 시장에서 수요가 높은 분야의 소일거리입니다.",
       "당신의 스킬과 잘 매치되는 포지션입니다.",
       "성장 가능성이 높은 직무로 추천드립니다."
     ];
@@ -408,13 +425,13 @@ export default function VoiceModal({ onClose, excludeJobIds = [], userId }) {
         <div className="voice-controls">
           {phase === 'ready' && (
             <button className="voice-start-btn" onClick={startRecording}>
-              여기를 클릭해주세요
+              누르고 말씀해주세요
             </button>
           )}
           
           {phase === 'recording' && (
             <button className="voice-stop-btn" onClick={stopRecording}>
-              여기를 눌러 종료
+              누르고 종료해주세요
             </button>
           )}
           
@@ -423,8 +440,11 @@ export default function VoiceModal({ onClose, excludeJobIds = [], userId }) {
               <button className="voice-retry-btn" onClick={resetVoice}>
                 다시 시도
               </button>
-              <button className="voice-close-btn" onClick={onClose}>
-                완료
+              <button 
+                className="voice-close-btn" 
+                onClick={phase === 'recommendation' ? handleComplete : onClose}
+              >
+                지도에서 확인
               </button>
             </div>
           )}

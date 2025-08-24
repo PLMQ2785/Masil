@@ -3,7 +3,15 @@
 import React, { useState } from 'react';
 import './BottomNavBar.css';
 
-export default function BottomNavBar({ onMicClick, onJobListClick, onProfileClick, initialSelected = '' }) {
+export default function BottomNavBar({ 
+  onMicClick, 
+  onJobListClick, 
+  onProfileClick, 
+  initialSelected = '',
+  showTooltips = false, // ✅ 새로운 props: 툴팁 표시 여부
+  isJobListActive = false, // 🆕 Job있으 버튼 활성화 상태
+  isVoiceActive = false // 🆕 마이크 버튼 활성화 상태
+}) {
   const [selectedTab, setSelectedTab] = useState(initialSelected);
 
   const handleTabClick = (tabName) => {
@@ -22,28 +30,40 @@ export default function BottomNavBar({ onMicClick, onJobListClick, onProfileClic
   return (
     <div className="bottom-nav">
       <button 
-        className={`nav-item ${selectedTab === 'list' ? 'active' : ''}`}
+        className={`nav-item ${selectedTab === 'list' || isJobListActive ? 'active' : ''}`}
         onClick={() => handleTabClick('list')}
       >
+        {/* ✅ 새로운 기능: AI 추천 툴팁 */}
+        {showTooltips && (
+          <div className="nav-tooltip ai-tooltip">
+            AI추천 기능을 <br></br>사용해보세요!
+          </div>
+        )}
         <div className="nav-icon">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
               <path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"/>
             </svg>
           </div>
-          <span className="nav-label">Job있으</span>
+          <span className="nav-label">AI 추천</span>
       </button>
       
       <button 
-        className={`nav-item ${selectedTab === 'voice' ? 'active' : ''}`}
+        className={`nav-item ${selectedTab === 'voice' || isVoiceActive ? 'active' : ''}`}
         onClick={() => handleTabClick('voice')}
       >
+        {/* ✅ 새로운 기능: 음성 추천 툴팁 */}
+        {showTooltips && (
+          <div className="nav-tooltip voice-tooltip">
+            음성추천 기능을 <br></br>사용해보세요!
+          </div>
+        )}
         <div className="nav-icon">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
               <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
               <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
             </svg>
           </div>
-          <span className="nav-label">마이크</span>
+          <span className="nav-label">음성 추천</span>
       </button>
       
       <button 

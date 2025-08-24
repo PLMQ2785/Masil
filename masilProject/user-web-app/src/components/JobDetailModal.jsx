@@ -143,10 +143,10 @@ export default function JobDetailModal({ job, onClose, isVisible, showRecommenda
               </div>
             )}
 
-            {/* 추천 이유 섹션 - showRecommendationReason이 true이고 reason이 있을 때만 표시 */}
+            {/* 🆕 추천 이유 섹션 - showRecommendationReason이 true이고 reason이 있을 때만 표시 (강조 스타일 적용) */}
             {showRecommendationReason && job.reason && (
-              <div className="job-description-section">
-                <h3 className="job-description-title">💡 추천 이유</h3>
+              <div className="job-recommendation-section">
+                <h3 className="job-description-title">추천 이유</h3>
                 <div className="job-description-content">
                   {job.reason}
                 </div>
