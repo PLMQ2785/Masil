@@ -81,7 +81,7 @@ def run_rag_pipeline(user_id: UUID, query: str, k: int, exclude_ids: Optional[Li
         추출된 지역명:
         """
         location_response = client.chat.completions.create(
-            model="gpt-4.1-mini",
+            model="gpt-5-nano",
             messages=[{"role": "user", "content": location_extraction_prompt}]
         )
         extracted_location = location_response.choices[0].message.content.strip()
@@ -106,10 +106,11 @@ def run_rag_pipeline(user_id: UUID, query: str, k: int, exclude_ids: Optional[Li
             당신은 사용자에게 서비스 정책을 친절하게 안내하는 AI 비서입니다.
             사용자가 서비스 지역이 아닌 '{extracted_location}'의 일자리를 요청했습니다.
             현재 서비스는 '{', '.join(SERVICE_AREAS)}' 지역만 가능하다는 점을 정중하게 설명하고,
-            향후 서비스 지역 확대를 위해 노력하겠다는 메시지를 담아 2~3 문장으로 답변해주세요.
+            요청 시 주소나 지명 기준으로 요청하라고 안내하십시오.
+            향후 서비스 지역 확대를 위해 노력하겠다는 메시지를 담아 1 문장으로 50자 이내로 답변해주세요.
             """
             response = client.chat.completions.create(
-                model="gpt-5-nano",
+                model="gpt-4.1-mini",
                 messages=[{"role": "user", "content": out_of_service_prompt}]
             )
             answer = response.choices[0].message.content
@@ -162,7 +163,7 @@ def run_rag_pipeline(user_id: UUID, query: str, k: int, exclude_ids: Optional[Li
         """
     
     rewrite_response = client.chat.completions.create(
-        model="gpt-5-mini", # 재작성은 가벼운 모델로도 충분합니다.
+        model="gpt-5-nano", # 재작성은 가벼운 모델로도 충분합니다.
         messages=[{"role": "user", "content": rewrite_prompt}],
     )
     
