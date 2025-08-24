@@ -248,7 +248,9 @@ def run_rag_pipeline(user_id: UUID, query: str, k: int, exclude_ids: Optional[Li
 
     if not retrieved_jobs:
         return {"answer": "죄송하지만, 요청과 유사한 소일거리를 찾지 못했습니다.", "jobs": []}
-
+    
+    print(f"Excluded List : {exclude_ids}")
+    
     if exclude_ids:
         retrieved_jobs = [job for job in retrieved_jobs if int(job['job_id']) not in exclude_ids]
     
