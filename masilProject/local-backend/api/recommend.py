@@ -109,7 +109,7 @@ def run_rag_pipeline(user_id: UUID, query: str, k: int, exclude_ids: Optional[Li
             향후 서비스 지역 확대를 위해 노력하겠다는 메시지를 담아 2~3 문장으로 답변해주세요.
             """
             response = client.chat.completions.create(
-                model="gpt-4.1-mini",
+                model="gpt-5-nano",
                 messages=[{"role": "user", "content": out_of_service_prompt}]
             )
             answer = response.choices[0].message.content
@@ -295,7 +295,7 @@ def run_rag_pipeline(user_id: UUID, query: str, k: int, exclude_ids: Optional[Li
     # 4. 필터링 및 재정렬 (Reranking)
     
     if ab_test_flag == "llm":    
-            print("--- LLM 기반 점수 계산 실행 (Chunking 방식) ---")
+            print("--- `LLM` 기반 점수 계산 실행 (Chunking 방식) ---")
 
             score_map = {}
             chunk_size = 30  # 한 번에 처리할 후보 수 (20~30개가 적당)
