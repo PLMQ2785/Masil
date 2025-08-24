@@ -62,7 +62,9 @@ def build_prompt_for_reason(candidate, user_info, query):
 def generate_fallback_reason(candidate):
     return f"'{candidate.get('title')}'은(는) 사용자님의 요청과 관련성이 높아 추천합니다."
 
-SERVICE_AREAS = ["서울특별시 강동구", "서울특별시 송파구", "서울특별시 강남구"] # 예시 지역
+SERVICE_AREAS = ["서울특별시 강동구", "서울특별시 송파구", "서울특별시 강남구"]
+# 더 유연한 비교를 위한 핵심 키워드 목록
+SERVICE_AREA_KEYWORDS = ["강동", "송파", "강남"] 
 
 def run_rag_pipeline(user_id: UUID, query: str, k: int, exclude_ids: Optional[List[int]] = None, current_latitude: Optional[float] = None, current_longitude: Optional[float] = None) -> dict:
     
@@ -72,12 +74,13 @@ def run_rag_pipeline(user_id: UUID, query: str, k: int, exclude_ids: Optional[Li
         location_extraction_prompt = f"""
         사용자의 질문에서 언급된 '지역명'이나 '도시 이름'을 모두 추출해주세요.
         만약 지역명이 언급되지 않았다면, "없음"이라고만 답변해주세요.
+        답변에는 오직 지역명만 포함하고 다른 설명은 붙이지 마세요.
 
         사용자 질문: "{query}"
         추출된 지역명:
         """
         location_response = client.chat.completions.create(
-            model="gpt-4o-mini",
+            model="gpt-4.1-mini",
             messages=[{"role": "user", "content": location_extraction_prompt}]
         )
         extracted_location = location_response.choices[0].message.content.strip()
@@ -86,7 +89,9 @@ def run_rag_pipeline(user_id: UUID, query: str, k: int, exclude_ids: Optional[Li
         is_out_of_service = False
         if extracted_location and extracted_location != "없음":
             # SERVICE_AREAS에 추출된 지역명이 포함되지 않으면 True
-            if not any(area in extracted_location for area in SERVICE_AREAS):
+            # --- 👇 핵심 수정 사항: 키워드로 포함 여부 확인 ---
+            if not any(extracted_location in area for area in SERVICE_AREAS):
+            # --- 👆 수정 끝 👆 ---
                 is_out_of_service = True
 
         # --- 👇 3단계: 서비스 지역 외 요청 처리 ---
@@ -101,7 +106,7 @@ def run_rag_pipeline(user_id: UUID, query: str, k: int, exclude_ids: Optional[Li
             향후 서비스 지역 확대를 위해 노력하겠다는 메시지를 담아 2~3 문장으로 답변해주세요.
             """
             response = client.chat.completions.create(
-                model="gpt-4o-mini",
+                model="gpt-4.1-mini",
                 messages=[{"role": "user", "content": out_of_service_prompt}]
             )
             answer = response.choices[0].message.content
@@ -526,7 +531,7 @@ def run_rag_pipeline(user_id: UUID, query: str, k: int, exclude_ids: Optional[Li
     try:
         # LLM을 딱 한 번만 호출합니다.
         reason_response = client.chat.completions.create(
-            model="gpt-4.1",
+            model="gpt-4.1-mini",
             messages=[{"role": "user", "content": reason_generation_prompt}],
             response_format={"type": "json_object"}
         )
@@ -555,7 +560,7 @@ def run_rag_pipeline(user_id: UUID, query: str, k: int, exclude_ids: Optional[Li
                 3. 사용자의 원래 질문의 핵심(예: '조용한', '컴퓨터')을 답변에 자연스럽게 포함시키세요.
                 4. 최종 답변은 2~3 문장으로 완성하세요.
                 [검색된 일자리 정보]\n{context}\n[질문]\n{query}\n[추천 메시지]"""
-    chat_response = client.chat.completions.create(model="gpt-4.1", messages=[{"role": "user", "content": prompt}])
+    chat_response = client.chat.completions.create(model="gpt-4.1-mini", messages=[{"role": "user", "content": prompt}])
     answer = chat_response.choices[0].message.content
 
     return {"answer": answer, "jobs": top_k_jobs}
