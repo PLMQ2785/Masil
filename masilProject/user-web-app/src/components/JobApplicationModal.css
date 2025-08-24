@@ -95,7 +95,7 @@
 }
 
 .application-modal-title {
-  font-size: 20px;
+  font-size: 22px; /* 개선: 20px → 22px로 증가 */
   font-weight: 700;
   margin: 0;
   color: white;
@@ -105,12 +105,12 @@
   background: rgba(255, 255, 255, 0.2);
   border: none;
   color: white;
-  font-size: 24px;
+  font-size: 26px; /* 개선: 24px → 26px로 증가 */
   cursor: pointer;
   padding: 8px;
   border-radius: 50%;
-  width: 40px;
-  height: 40px;
+  width: 44px; /* 개선: 40px → 44px로 증가 */
+  height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -141,11 +141,12 @@
   background: #f8f9fa;
   padding: 16px;
   border-radius: 12px;
-  border-left: 4px solid var(--accent-color);
+  /* 수정: 왼쪽 녹색 바 제거 */
+  border: 1px solid var(--border-color);
 }
 
 .job-summary h4 {
-  font-size: 18px;
+  font-size: 20px; /* 개선: 18px → 20px로 증가 */
   font-weight: 700;
   color: var(--text-primary);
   margin: 0 0 8px 0;
@@ -153,7 +154,7 @@
 }
 
 .job-info {
-  font-size: 15px;
+  font-size: 17px; /* 개선: 15px → 17px로 증가 */
   color: var(--text-secondary);
   margin: 0;
   line-height: 1.4;
@@ -164,7 +165,7 @@
 }
 
 .application-message p {
-  font-size: 17px;
+  font-size: 19px; /* 개선: 17px → 19px로 증가 */
   color: var(--text-primary);
   margin: 0 0 12px 0;
   font-weight: 600;
@@ -172,7 +173,7 @@
 }
 
 .application-note {
-  font-size: 14px !important;
+  font-size: 16px !important; /* 개선: 14px → 16px로 증가 */
   color: var(--text-secondary) !important;
   font-weight: 400 !important;
   margin: 0 !important;
@@ -205,21 +206,21 @@
 }
 
 .application-success h3 {
-  font-size: 22px;
+  font-size: 24px; /* 개선: 22px → 24px로 증가 */
   font-weight: 700;
   color: var(--success-green);
   margin: 0 0 16px 0;
 }
 
 .application-success p {
-  font-size: 16px;
+  font-size: 18px; /* 개선: 16px → 18px로 증가 */
   color: var(--text-secondary);
   margin: 0 0 12px 0;
   line-height: 1.5;
 }
 
 .success-note {
-  font-size: 14px !important;
+  font-size: 16px !important; /* 개선: 14px → 16px로 증가 */
   color: var(--text-secondary) !important;
   font-style: italic;
 }
@@ -231,7 +232,7 @@
   color: var(--error-red);
   padding: 12px 16px;
   border-radius: 8px;
-  font-size: 14px;
+  font-size: 16px; /* 개선: 14px → 16px로 증가 */
   text-align: center;
   margin-top: 8px;
 }
@@ -248,8 +249,8 @@
 .application-cancel-btn,
 .application-submit-btn {
   flex: 1;
-  height: 48px;
-  font-size: 16px;
+  height: 56px; /* 개선: 48px → 56px로 증가 (VoiceModal 참고) */
+  font-size: 18px; /* 개선: 16px → 18px로 증가 */
   font-weight: 600;
   border-radius: 8px;
   cursor: pointer;
@@ -258,27 +259,30 @@
   font-family: inherit;
 }
 
+/* 수정: 버튼 순서 변경 - 지원하기 버튼을 primary로 */
+.application-submit-btn {
+  background: var(--primary-color);
+  color: white;
+  order: 1; /* 먼저 표시 */
+}
+
 .application-cancel-btn {
   background: transparent;
   color: var(--text-secondary);
   border: 2px solid var(--border-color);
-}
-
-.application-cancel-btn:hover:not(:disabled) {
-  background: var(--text-secondary);
-  color: white;
-  transform: translateY(-1px);
-}
-
-.application-submit-btn {
-  background: var(--primary-color);
-  color: white;
+  order: 2; /* 나중에 표시 */
 }
 
 .application-submit-btn:hover:not(:disabled) {
   background: var(--accent-color);
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(44, 62, 80, 0.2);
+}
+
+.application-cancel-btn:hover:not(:disabled) {
+  background: var(--text-secondary);
+  color: white;
+  transform: translateY(-1px);
 }
 
 .application-cancel-btn:disabled,
@@ -288,16 +292,22 @@
   transform: none !important;
 }
 
-/* 모바일 최적화 */
+/* 수정: 모바일 최적화 - 중앙 정렬 개선 */
 @media (max-width: 768px) {
   .application-modal-backdrop {
     padding: 16px;
+    /* 추가: 완벽한 중앙 정렬 보장 */
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
   
   .application-modal-container {
     max-width: 100%;
     max-height: 90vh;
     border-radius: 16px;
+    /* 추가: 중앙 정렬을 위한 margin 설정 */
+    margin: 0;
   }
   
   .application-modal-header {
@@ -305,13 +315,13 @@
   }
   
   .application-modal-title {
-    font-size: 18px;
+    font-size: 20px; /* 개선: 18px → 20px로 증가 */
   }
   
   .application-modal-close {
-    width: 36px;
-    height: 36px;
-    font-size: 20px;
+    width: 40px; /* 개선: 36px → 40px로 증가 */
+    height: 40px;
+    font-size: 22px; /* 개선: 20px → 22px로 증가 */
   }
   
   .application-modal-content {
@@ -323,27 +333,27 @@
   }
   
   .job-summary h4 {
-    font-size: 17px;
+    font-size: 19px; /* 개선: 17px → 19px로 증가 */
   }
   
   .job-info {
-    font-size: 14px;
+    font-size: 16px; /* 개선: 14px → 16px로 증가 */
   }
   
   .application-message p {
-    font-size: 16px;
+    font-size: 18px; /* 개선: 16px → 18px로 증가 */
   }
   
   .application-note {
-    font-size: 13px !important;
+    font-size: 15px !important; /* 개선: 13px → 15px로 증가 */
   }
   
   .application-success h3 {
-    font-size: 20px;
+    font-size: 22px; /* 개선: 20px → 22px로 증가 */
   }
   
   .application-success p {
-    font-size: 15px;
+    font-size: 17px; /* 개선: 15px → 17px로 증가 */
   }
   
   .application-modal-actions {
@@ -353,18 +363,24 @@
   
   .application-cancel-btn,
   .application-submit-btn {
-    height: 44px;
-    font-size: 15px;
+    height: 52px; /* 개선: 44px → 52px로 증가 */
+    font-size: 17px; /* 개선: 15px → 17px로 증가 */
   }
 }
 
 @media (max-width: 480px) {
   .application-modal-backdrop {
     padding: 12px;
+    /* 추가: 작은 화면에서도 완벽한 중앙 정렬 */
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
   
   .application-modal-container {
     border-radius: 12px;
+    /* 추가: 작은 화면에서 margin 제거 */
+    margin: 0;
   }
   
   .application-modal-header {
@@ -372,7 +388,7 @@
   }
   
   .application-modal-title {
-    font-size: 16px;
+    font-size: 18px; /* 개선: 16px → 18px로 증가 */
   }
   
   .application-modal-content {
@@ -384,15 +400,15 @@
   }
   
   .job-summary h4 {
-    font-size: 16px;
+    font-size: 18px; /* 개선: 16px → 18px로 증가 */
   }
   
   .job-info {
-    font-size: 13px;
+    font-size: 15px; /* 개선: 13px → 15px로 증가 */
   }
   
   .application-message p {
-    font-size: 15px;
+    font-size: 17px; /* 개선: 15px → 17px로 증가 */
   }
   
   .application-modal-actions {
@@ -401,7 +417,7 @@
   
   .application-cancel-btn,
   .application-submit-btn {
-    height: 42px;
-    font-size: 14px;
+    height: 48px; /* 개선: 42px → 48px로 증가 */
+    font-size: 16px; /* 개선: 14px → 16px로 증가 */
   }
 }

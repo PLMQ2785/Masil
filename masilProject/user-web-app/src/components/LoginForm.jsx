@@ -90,7 +90,18 @@ export default function LoginForm() {
   });
   const navigate = useNavigate();
 
+  // ✅ 추가: SignUpForm과 동일한 입력 글자 수 제한 설정
+  const inputLimits = {
+    phone: 11,        // 전화번호 (010-0000-0000 형식, 하이픈 제외하면 11자리)
+    password: 20,     // 비밀번호
+  };
+
   const handleInputChange = (field, value) => {
+    // ✅ 추가: 글자 수 제한 체크
+    if (inputLimits[field] && value.length > inputLimits[field]) {
+      return; // 제한을 초과하면 업데이트하지 않음
+    }
+    
     setFormData(prev => ({
       ...prev,
       [field]: value
@@ -113,7 +124,7 @@ export default function LoginForm() {
       alert(error.error_description || error.message);
     } else if (user) {
       const { data: profile, error: profileError } = await supabase
-        .from('profiles')
+        .from('users')
         .select('role')
         .eq('id', user.id)
         .single();
@@ -152,18 +163,24 @@ export default function LoginForm() {
           placeholder="전화번호 ('-' 제외)"
           className="auth-input"
           value={formData.phone}
+          maxLength={inputLimits.phone} // ✅ 추가: 최대 글자 수 제한
           required
           onChange={(e) => handleInputChange('phone', e.target.value.replace(/[^0-9]/g, ''))}
         />
+        {/* ✅ 추가: 전화번호 글자 수 카운터 */}
+        <div className="input-counter">{formData.phone.length}/{inputLimits.phone}</div>
         
         <input
           type="password"
           placeholder="비밀번호"
           className="auth-input"
           value={formData.password}
+          maxLength={inputLimits.password} // ✅ 추가: 최대 글자 수 제한
           required
           onChange={(e) => handleInputChange('password', e.target.value)}
         />
+        {/* ✅ 추가: 비밀번호 글자 수 카운터 */}
+        <div className="input-counter">{formData.password.length}/{inputLimits.password}</div>
         
         <button 
           type="submit" 

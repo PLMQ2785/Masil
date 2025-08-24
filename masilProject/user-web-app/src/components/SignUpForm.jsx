@@ -62,13 +62,15 @@ export default function SignUpForm() {
   );
 }*/
 
-// src/components/SignUpForm.jsx - 하이라이트 효과가 적용된 섹션 제목
+// src/components/SignUpForm.jsx - 회원가입 후 로그인 페이지 이동 문제 해결
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
+import { useNavigate } from 'react-router-dom';
 import './AuthForms.css';
 
 export default function SignUpForm() {
   const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     nickname: '',
     gender: '',
@@ -196,78 +198,98 @@ export default function SignUpForm() {
 
     setLoading(true);
 
-    // 전화번호 포맷팅 (백엔드 코드 참고)
-    const processedPhone = formData.phone.replace(/[^0-9]/g, '');
-    const formattedPhone = `+82${processedPhone.startsWith('0') ? processedPhone.substring(1) : processedPhone}`;
+    try {
+      // 전화번호 포맷팅 (백엔드 코드 참고)
+      const processedPhone = formData.phone.replace(/[^0-9]/g, '');
+      const formattedPhone = `+82${processedPhone.startsWith('0') ? processedPhone.substring(1) : processedPhone}`;
 
-    // 디버깅을 위한 콘솔 로그
-    console.log('전송할 데이터:', {
-      nickname: formData.nickname,
-      gender: formData.gender === 'male' ? 'M' : 'F',
-      date_of_birth: formData.birthDate,
-      home_address: formData.residence,
-      preferred_jobs: formData.interests,
-      interests: formData.interests,
-      availability_json: formData.dayTimeSchedule,
-      work_history: formData.workExperience,
-      ability_physical: formData.physicalLevel === '상' ? 3 : formData.physicalLevel === '중' ? 2 : 1,
-      preferred_environment: formData.insideOutsideLevel,
-      max_travel_time_min: parseInt(formData.movingLevel.replace('분', ''))
-    });
+      // 디버깅을 위한 콘솔 로그
+      console.log('전송할 데이터:', {
+        nickname: formData.nickname,
+        gender: formData.gender === 'male' ? 'M' : 'F',
+        date_of_birth: formData.birthDate,
+        home_address: formData.residence,
+        preferred_jobs: formData.interests,
+        interests: formData.interests,
+        availability_json: formData.dayTimeSchedule,
+        work_history: formData.workExperience,
+        ability_physical: formData.physicalLevel === '상' ? 3 : formData.physicalLevel === '중' ? 2 : 1,
+        preferred_environment: formData.insideOutsideLevel,
+        max_travel_time_min: parseInt(formData.movingLevel.replace('분', ''))
+      });
 
-    // DB 구조에 맞게 데이터 매핑
-    const profileData = {
-      // 기본 정보
-      nickname: formData.nickname,
-      gender: formData.gender === 'male' ? 'M' : 'F', // DB는 M/F로 저장
-      date_of_birth: formData.birthDate,
-      home_address: formData.residence,
-      
-      // 선호도 및 능력 정보 (문자열로 변환하여 전달)
-      preferred_jobs: formData.interests.join(', '), // 배열을 콤마로 구분된 문자열로 변환
-      interests: formData.interests.join(', '), // 배열을 콤마로 구분된 문자열로 변환
-      
-      // 가용성 정보 (JSON 문자열로 변환하여 전달)
-      availability_json: JSON.stringify(formData.dayTimeSchedule),
-      
-      // 업무 이력
-      work_history: formData.workExperience || '', // 빈 문자열로 기본값 설정
-      
-      // 능력 레벨 정보 (int2 타입에 맞게 숫자로 변환)
-      ability_physical: formData.physicalLevel === '상' ? 3 : formData.physicalLevel === '중' ? 2 : 1,
-      
-      // 선호 환경 (text로 저장)
-      preferred_environment: formData.insideOutsideLevel,
-      
-      // 최대 이동 시간 (분 단위로 변환하여 int2로 저장)
-      max_travel_time_min: parseInt(formData.movingLevel.replace('분', ''))
-    };
+      // DB 구조에 맞게 데이터 매핑
+      const profileData = {
+        // 기본 정보
+        nickname: formData.nickname,
+        gender: formData.gender === 'male' ? 'M' : 'F', // DB는 M/F로 저장
+        date_of_birth: formData.birthDate,
+        home_address: formData.residence,
+        
+        // 선호도 및 능력 정보 (문자열로 변환하여 전달)
+        preferred_jobs: formData.interests.join(', '), // 배열을 콤마로 구분된 문자열로 변환
+        interests: formData.interests.join(', '), // 배열을 콤마로 구분된 문자열로 변환
+        
+        // 가용성 정보 (JSON 문자열로 변환하여 전달)
+        availability_json: JSON.stringify(formData.dayTimeSchedule),
+        
+        // 업무 이력
+        work_history: formData.workExperience || '', // 빈 문자열로 기본값 설정
+        
+        // 능력 레벨 정보 (int2 타입에 맞게 숫자로 변환)
+        ability_physical: formData.physicalLevel === '상' ? 3 : formData.physicalLevel === '중' ? 2 : 1,
+        
+        // 선호 환경 (text로 저장)
+        preferred_environment: formData.insideOutsideLevel,
+        
+        // 최대 이동 시간 (분 단위로 변환하여 int2로 저장)
+        max_travel_time_min: parseInt(formData.movingLevel.replace('분', ''))
+      };
 
-    // supabase.auth.signUp 호출 시 options.data에 추가 정보를 담아 전달
-    const { error } = await supabase.auth.signUp({
-      phone: formattedPhone,
-      password: formData.password,
-      options: {
-        data: profileData
+      console.log('🚀 회원가입 시작...');
+
+      // supabase.auth.signUp 호출 시 options.data에 추가 정보를 담아 전달
+      const { error } = await supabase.auth.signUp({
+        phone: formattedPhone,
+        password: formData.password,
+        options: {
+          data: profileData
+        }
+      });
+
+      if (error) {
+        console.error('❌ 회원가입 오류:', error);
+        alert(error.error_description || error.message);
+      } else {
+        console.log('✅ 회원가입 성공 - 로그아웃 처리 시작');
+        
+        // ✅ 핵심 수정: 회원가입 성공 후 강제 로그아웃
+        await supabase.auth.signOut();
+        console.log('🚪 강제 로그아웃 완료');
+        
+        // ✅ 추가: 상태 업데이트를 위한 대기시간
+        await new Promise(resolve => setTimeout(resolve, 800));
+        
+        alert('가입이 완료되었습니다! 이제 로그인 해주세요.');
+        
+        // ✅ 핵심 수정: 로그인 페이지로 강제 이동
+        console.log('🔀 로그인 페이지로 이동');
+        navigate('/login', { replace: true });
       }
-    });
-
-    if (error) {
-      alert(error.error_description || error.message);
-    } else {
-      // 가입 성공 시 자동 로그인을 막기 위해 즉시 로그아웃 (백엔드 코드 참고)
-      await supabase.auth.signOut();
-      alert('가입이 완료되었습니다! 이제 로그인 해주세요.');
+    } catch (error) {
+      console.error('❌ 회원가입 처리 중 예외 발생:', error);
+      alert('회원가입 중 오류가 발생했습니다. 다시 시도해주세요.');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleLogin = () => {
-    window.location.href = '/login';
+    navigate('/login');
   };
 
   const goBack = () => {
-    window.history.back();
+    navigate('/');
   };
 
   return (
@@ -282,7 +304,6 @@ export default function SignUpForm() {
       <form className="auth-form signup-form" onSubmit={handleSignUp}>
         
         <div className="form-section">
-          {/* ✅ 수정: 하이라이트 효과를 위한 data-step 속성 추가 */}
           <h2 className="section-title" data-step="Step 1">계정 정보</h2>
           <input
             type="tel"
@@ -293,7 +314,7 @@ export default function SignUpForm() {
             required
             onChange={(e) => handleInputChange('phone', e.target.value.replace(/[^0-9]/g, ''))}
           />
-
+          <div className="input-counter">{formData.phone.length}/{inputLimits.phone}</div>
           
           <input
             type="password"
@@ -304,6 +325,7 @@ export default function SignUpForm() {
             required
             onChange={(e) => handleInputChange('password', e.target.value)}
           />
+          <div className="input-counter">{formData.password.length}/{inputLimits.password}</div>
           
           <input
             type="password"
@@ -314,12 +336,12 @@ export default function SignUpForm() {
             required
             onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
           />
+          <div className="input-counter">{formData.confirmPassword.length}/{inputLimits.confirmPassword}</div>
         </div>
         
         <div className="section-divider"></div>
 
         <div className="form-section">
-          {/* ✅ 수정: 하이라이트 효과를 위한 data-step 속성 추가 */}
           <h2 className="section-title" data-step="Step 2">기본 정보</h2>
           <input
             type="text"
@@ -330,6 +352,7 @@ export default function SignUpForm() {
             required
             onChange={(e) => handleInputChange('nickname', e.target.value)}
           />
+          <div className="input-counter">{formData.nickname.length}/{inputLimits.nickname}</div>
           
           <select
             className="auth-input"
@@ -343,6 +366,7 @@ export default function SignUpForm() {
           </select>
           
           <div className="date-input-wrapper">
+            <label className="date-label">생년월일을 선택해주세요</label>
             <input
               type="date"
               placeholder="연도-월-일"
@@ -351,7 +375,6 @@ export default function SignUpForm() {
               required
               onChange={(e) => handleInputChange('birthDate', e.target.value)}
             />
-            <label className="date-label">생년월일을 선택해주세요</label>
           </div>
           
           <input
@@ -359,15 +382,16 @@ export default function SignUpForm() {
             placeholder="예시)서울특별시 중구 태평로1가 31" 
             className="auth-input"
             value={formData.residence}
+            maxLength={inputLimits.residence}
             required
             onChange={(e) => handleInputChange('residence', e.target.value)}
           />
+          <div className="input-counter">{formData.residence.length}/{inputLimits.residence}</div>
         </div>
 
         <div className="section-divider"></div>
 
         <div className="form-section">
-          {/* ✅ 수정: 하이라이트 효과를 위한 data-step 속성 추가 */}
           <h2 className="section-title" data-step="1단계">1단계 - 기본 설정</h2>
           <h3 className="section-title">체력 수준</h3>
           <div className="physical-level-group">
@@ -419,7 +443,6 @@ export default function SignUpForm() {
         <div className="section-divider"></div>
 
         <div className="form-section">
-          {/* ✅ 수정: 하이라이트 효과를 위한 data-step 속성 추가 */}
           <h2 className="section-title" data-step="2단계">2단계 - 가능 시간</h2>
 
           {/* 표 형식의 요일별 시간대 선택 */}
@@ -460,7 +483,6 @@ export default function SignUpForm() {
         <div className="section-divider"></div>
 
         <div className="form-section">
-          {/* ✅ 수정: 하이라이트 효과를 위한 data-step 속성 추가 */}
           <h2 className="section-title" data-step="3단계">3단계 - <br />내가 할 수 있는 일</h2>
           <p className="section-subtitle">복수 선택 가능</p>
 
