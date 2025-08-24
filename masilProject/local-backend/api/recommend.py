@@ -67,7 +67,8 @@ SERVICE_AREAS = ["서울특별시 강동구", "서울특별시 송파구", "서�
 SERVICE_AREA_KEYWORDS = ["강동", "송파", "강남"] 
 
 def run_rag_pipeline(user_id: UUID, query: str, k: int, exclude_ids: Optional[List[int]] = None, current_latitude: Optional[float] = None, current_longitude: Optional[float] = None) -> dict:
-    
+
+    print("RAG 파이프라인 실행")
     # --- 👇 0단계: 사용자 요청에서 지역 추출 및 검사 ---
     try:
         # LLM에게 지역명 추출을 요청하는 프롬프트
@@ -84,6 +85,8 @@ def run_rag_pipeline(user_id: UUID, query: str, k: int, exclude_ids: Optional[Li
             messages=[{"role": "user", "content": location_extraction_prompt}]
         )
         extracted_location = location_response.choices[0].message.content.strip()
+
+        print(f"추출된 지역명: {extracted_location}")
 
         # 추출된 지역이 서비스 지역 밖인지 확인
         is_out_of_service = False
