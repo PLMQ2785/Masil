@@ -45,18 +45,19 @@ def format_availability(availability_json) -> str:
     return ', '.join(available_days) if available_days else "정보 없음"
 
 def build_prompt_for_reason(candidate, user_info, query):
-    prompt = f"""당신은 AI 추천 전문가입니다. 사용자는 '{query}'라고 질문했습니다. 아래 [일자리 정보]를 보고, 이 일자리가 왜 사용자에게 좋은 추천인지 그 이유를 한 문장으로 간결하게 설명해주세요.
-                그리고 답변에 간단한 이유, 이동시간, 시간 겹침 비율, 임금 분위 여부 등을 반드시 포함하시오.
-                <예시>
-                실내·가벼움에 적합하고, 이동 17분, 시간 겹침 14%, 임금 지역 상위 30%입니다.
-                </예시>
+    prompt = f"""
+당신은 AI 추천 전문가입니다. 사용자는 '{query}'라고 질문했습니다. 아래 [일자리 정보]를 보고, 이 일자리가 왜 사용자에게 좋은 추천인지 그 이유를 한 문장으로 간결하게 설명해주세요.
+그리고 답변에 간단한 이유, 이동시간, 시간 겹침 비율, 임금 분위 여부 등을 반드시 포함하시오.
+<예시>
+실내·가벼움에 적합하고, 이동 17분, 시간 겹침 14%, 임금 지역 상위 30%입니다.
+</예시>
 
-                [일자리 정보]
-                - 제목: {candidate.get('title')}
-                - 내용: {candidate.get('description')}
-                - 장소: {candidate.get('place')}
-                - 시급: {candidate.get('hourly_wage')}원
-                - 거리: {candidate.get('distance_km')}km"""
+[일자리 정보]
+- 제목: {candidate.get('title')}
+- 내용: {candidate.get('description')}
+- 장소: {candidate.get('place')}
+- 시급: {candidate.get('hourly_wage')}원
+- 거리: {candidate.get('distance_km')}km"""
     return prompt
 
 def generate_fallback_reason(candidate):
@@ -73,13 +74,13 @@ def run_rag_pipeline(user_id: UUID, query: str, k: int, exclude_ids: Optional[Li
     try:
         # LLM에게 지역명 추출을 요청하는 프롬프트
         location_extraction_prompt = f"""
-        사용자의 질문에서 언급된 '지역명'이나 '도시 이름'을 모두 추출해주세요.
-        만약 지역명이 언급되지 않았다면, "없음"이라고만 답변해주세요.
-        답변에는 오직 지역명만 포함하고 다른 설명은 붙이지 마세요.
+사용자의 질문에서 언급된 '지역명'이나 '도시 이름'을 모두 추출해주세요.
+만약 지역명이 언급되지 않았다면, "없음"이라고만 답변해주세요.
+답변에는 오직 지역명만 포함하고 다른 설명은 붙이지 마세요.
 
-        사용자 질문: "{query}"
-        추출된 지역명:
-        """
+사용자 질문: "{query}"
+추출된 지역명:
+"""
         location_response = client.chat.completions.create(
             model="gpt-5-nano",
             messages=[{"role": "user", "content": location_extraction_prompt}]
@@ -103,12 +104,12 @@ def run_rag_pipeline(user_id: UUID, query: str, k: int, exclude_ids: Optional[Li
             
             # 서비스 불가 안내 메시지를 LLM으로 생성
             out_of_service_prompt = f"""
-            당신은 사용자에게 서비스 정책을 친절하게 안내하는 AI 비서입니다.
-            사용자가 서비스 지역이 아닌 '{extracted_location}'의 일자리를 요청했습니다.
-            현재 서비스는 '{', '.join(SERVICE_AREAS)}' 지역만 가능하다는 점을 정중하게 설명하고,
-            요청 시 주소나 지명 기준으로 요청하라고 안내하십시오.
-            향후 서비스 지역 확대를 위해 노력하겠다는 메시지를 담아 1 문장으로 50자 이내로 답변해주세요.
-            """
+당신은 사용자에게 서비스 정책을 친절하게 안내하는 AI 비서입니다.
+사용자가 서비스 지역이 아닌 '{extracted_location}'의 일자리를 요청했습니다.
+현재 서비스는 '{', '.join(SERVICE_AREAS)}' 지역만 가능하다는 점을 정중하게 설명하고,
+요청 시 주소나 지명 기준으로 요청하라고 안내하십시오.
+향후 서비스 지역 확대를 위해 노력하겠다는 메시지를 담아 1 문장으로 50자 이내로 답변해주세요.
+"""
             response = client.chat.completions.create(
                 model="gpt-4.1-mini",
                 messages=[{"role": "user", "content": out_of_service_prompt}]
@@ -148,19 +149,23 @@ def run_rag_pipeline(user_id: UUID, query: str, k: int, exclude_ids: Optional[Li
     
     # --- 👇 1단계: 쿼리 재작성 (Query Rewriting) - 신규 추가 ---
     rewrite_prompt = f"""
-        당신은 시니어 사용자의 일자리 검색어를 벡터 검색에 최적화된 형태로 재작성하는 전문가입니다.
-        사용자의 [질문]과 [사용자 프로필]을 종합적으로 고려하여, 사용자의 숨은 의도까지 파악한 구체적인 검색어를 만들어주세요.
+### 역할 ###
+당신은 시니어 사용자의 일자리 검색어를 벡터 검색에 최적화된 형태로 재작성하는 전문가입니다.
 
-        [사용자 프로필]
-        - 나이: {calculate_age(user_ctx.get('date_of_birth'))}세
-        - 선호 직무: {user_ctx.get('preferred_jobs')}
-        - 선호 환경: {user_ctx.get('preferred_environment')}
-        - 근무 가능 요일: {format_availability(user_ctx.get('availability_json'))}
+### 지시사항 ###
+1. 사용자의 [질문]과 [사용자 프로필]을 종합적으로 고려하여, 사용자의 숨은 의도까지 파악한 구체적인 검색어를 생성해주세요.
+2. 당신의 답변은 오직 재작성된 검색어 문장만 포함해야 합니다.
+3. "재작성된 쿼리:" 와 같은 다른 부가적인 설명이나 접두사는 절대 붙이지 마세요.
 
-        [실제 재작성 요청]
-        - 사용자 질문: {query}
-        - 재작성된 쿼리:
-        """
+### 사용자 프로필 ###
+- 나이: {calculate_age(user_ctx.get('date_of_birth'))}세
+- 선호 직무: {user_ctx.get('preferred_jobs')}
+- 선호 환경: {user_ctx.get('preferred_environment')}
+- 근무 가능 요일: {format_availability(user_ctx.get('availability_json'))}
+
+### 사용자 질문 ###
+{query}
+"""
     
     rewrite_response = client.chat.completions.create(
         model="gpt-5-nano", # 재작성은 가벼운 모델로도 충분합니다.
@@ -193,16 +198,16 @@ def run_rag_pipeline(user_id: UUID, query: str, k: int, exclude_ids: Optional[Li
      
     # 2a. 임베딩을 위한 종합 텍스트 생성
     profile_info = f"""
-        - 나이: {f'{age}세' if age else '정보 없음'}
-        - 주소: {user_ctx.get('home_address') or '정보 없음'}
-        - 근무 가능 요일: {availability_summary}
-        - 신체 능력 수준: {ability_text or '정보 없음'}
-        - 선호 환경: {user_ctx.get('preferred_environment') or '무관'}
-        - 최대 이동 가능 시간: {f"{user_ctx.get('max_travel_time_min')}분" if user_ctx.get('max_travel_time_min') else '정보 없음'}
-        - 선호 직무: {', '.join(user_ctx.get('preferred_jobs') or [])}
-        - 관심사: {', '.join(user_ctx.get('interests') or [])}
-        - 과거 경험: {user_ctx.get('work_history') or '없음'}
-            """
+- 나이: {f'{age}세' if age else '정보 없음'}
+- 주소: {user_ctx.get('home_address') or '정보 없음'}
+- 근무 가능 요일: {availability_summary}
+- 신체 능력 수준: {ability_text or '정보 없음'}
+- 선호 환경: {user_ctx.get('preferred_environment') or '무관'}
+- 최대 이동 가능 시간: {f"{user_ctx.get('max_travel_time_min')}분" if user_ctx.get('max_travel_time_min') else '정보 없음'}
+- 선호 직무: {', '.join(user_ctx.get('preferred_jobs') or [])}
+- 관심사: {', '.join(user_ctx.get('interests') or [])}
+- 과거 경험: {user_ctx.get('work_history') or '없음'}
+"""
     
     # 긍정적이었던 활동의 제목을 가져와 히스토리 정보 구성 (선택사항이지만 효과적)
     if accepted_ids:
@@ -222,15 +227,12 @@ def run_rag_pipeline(user_id: UUID, query: str, k: int, exclude_ids: Optional[Li
         
     # 모든 정보를 하나로 결합
     composite_text_for_embedding = f"""
-        [사용자 질문]
-        {query}
+{query}
 
-        [사용자 프로필]
-        {profile_info}
+{profile_info}
 
-        [과거 활동]
-        {history_info}
-        """
+{history_info}
+"""
     print("--- 임베딩 생성용 종합 텍스트 ---")
     print(composite_text_for_embedding)
     print("---------------------------------")
@@ -329,36 +331,36 @@ def run_rag_pipeline(user_id: UUID, query: str, k: int, exclude_ids: Optional[Li
             # LLM에 전달할 프롬프트 설계 (점수 계산 역할 명시)
             # --- 👇 프롬프트 강화 ---
                 scoring_prompt = f"""
-                    당신은 사용자의 프로필과 선호도에 맞춰 일자리를 추천하는 최고의 AI 전문가입니다.
-                    [사용자 정보]와 [일자리 후보 목록]을 주의 깊게 읽고, 각 일자리가 사용자의 [질문]에 얼마나 적합한지 평가해주세요.
+당신은 사용자의 프로필과 선호도에 맞춰 일자리를 추천하는 최고의 AI 전문가입니다.
+[사용자 정보]와 [일자리 후보 목록]을 주의 깊게 읽고, 각 일자리가 사용자의 [질문]에 얼마나 적합한지 평가해주세요.
 
-                    [역할]
-                    1. [일자리 후보 목록]에 있는 **모든 일자리 각각**에 대해, 사용자와의 적합도를 0.0에서 1.0 사이의 'match_score'로 계산합니다.
-                    2. 점수가 높을수록 더 적합하며, **조건에 맞지 않는다고 생각되면 반드시 낮은 점수(예: 0.1)를 부여**해야 합니다.
-                    3. 모든 후보에 대한 평가 점수를 아래 [출력 형식]과 완벽하게 일치하는 단일 JSON 객체로 반환해야 합니다. **다른 설명은 절대 추가하지 마세요.**
+[역할]
+1. [일자리 후보 목록]에 있는 **모든 일자리 각각**에 대해, 사용자와의 적합도를 0.0에서 1.0 사이의 'match_score'로 계산합니다.
+2. 점수가 높을수록 더 적합하며, **조건에 맞지 않는다고 생각되면 반드시 낮은 점수(예: 0.1)를 부여**해야 합니다.
+3. 모든 후보에 대한 평가 점수를 아래 [출력 형식]과 완벽하게 일치하는 단일 JSON 객체로 반환해야 합니다. **다른 설명은 절대 추가하지 마세요.**
 
-                    [사용자 정보]
-                    - 나이: {calculate_age(user_ctx.get('date_of_birth'))}세
-                    - 선호 직무: {user_ctx.get('preferred_jobs')}
-                    - 관심사: {user_ctx.get('interests')}
-                    - 과거 경험: {user_ctx.get('work_history')}
+[사용자 정보]
+- 나이: {calculate_age(user_ctx.get('date_of_birth'))}세
+- 선호 직무: {user_ctx.get('preferred_jobs')}
+- 관심사: {user_ctx.get('interests')}
+- 과거 경험: {user_ctx.get('work_history')}
 
-                    [질문]
-                    {query}
+[질문]
+{query}
 
-                    [일자리 후보 목록]
-                    {json.dumps(candidates_for_prompt, indent=2, ensure_ascii=False)}
+[일자리 후보 목록]
+{json.dumps(candidates_for_prompt, indent=2, ensure_ascii=False)}
 
-                    [출력 형식]
-                    {{
-                    "scores": [
-                        {{
-                        "job_id": <첫 번째 job_id>,
-                        "match_score": <계산된 점수>
-                        }}
-                    ]
-                    }}
-                    """
+[출력 형식]
+{{
+"scores": [
+    {{
+    "job_id": <첫 번째 job_id>,
+    "match_score": <계산된 점수>
+    }}
+]
+}}
+"""
                 # scoring_response = client.chat.completions.create(
                 #         model="gpt-5-nano",
                 #         messages=[{"role": "user", "content": scoring_prompt}],
@@ -505,34 +507,34 @@ def run_rag_pipeline(user_id: UUID, query: str, k: int, exclude_ids: Optional[Li
         top_k_for_prompt.append(job_info)
     
     reason_generation_prompt = f"""
-        당신은 AI 추천 전문가입니다. 사용자의 [질문]과 [사용자 정보]를 바탕으로, 아래 [추천 일자리 목록]에 있는 각 일자리에 대해 왜 좋은 추천인지 그 이유를 한 문장으로 간결하게 설명해주세요.
+당신은 AI 추천 전문가입니다. 사용자의 [질문]과 [사용자 정보]를 바탕으로, 아래 [추천 일자리 목록]에 있는 각 일자리에 대해 왜 좋은 추천인지 그 이유를 한 문장으로 간결하게 설명해주세요.
 
-        [사용자 정보]
-        - 나이: {calculate_age(user_ctx.get('date_of_birth'))}세
-        - 선호 직무: {user_ctx.get('preferred_jobs')}
-        - 관심사: {user_ctx.get('interests')}
+[사용자 정보]
+- 나이: {calculate_age(user_ctx.get('date_of_birth'))}세
+- 선호 직무: {user_ctx.get('preferred_jobs')}
+- 관심사: {user_ctx.get('interests')}
 
-        [질문]
-        {query}
+[질문]
+{query}
 
-        [추천 일자리 목록]
-        {json.dumps(top_k_for_prompt, indent=2, ensure_ascii=False)}
+[추천 일자리 목록]
+{json.dumps(top_k_for_prompt, indent=2, ensure_ascii=False)}
 
-        [출력 형식]
-        반드시 아래와 같은 JSON 형식으로만 응답해주세요. 'reasons' 리스트에는 [추천 일자리 목록]과 동일한 순서로 각 job_id와 추천 이유를 포함해야 합니다.
-        {{
-        "reasons": [
-            {{
-            "job_id": <첫 번째 job_id>,
-            "reason": "<첫 번째 추천 이유 요약>"
-            }},
-            {{
-            "job_id": <두 번째 job_id>,
-            "reason": "<두 번째 추천 이유 요약>"
-            }}
-        ]
-        }}
-        """
+[출력 형식]
+반드시 아래와 같은 JSON 형식으로만 응답해주세요. 'reasons' 리스트에는 [추천 일자리 목록]과 동일한 순서로 각 job_id와 추천 이유를 포함해야 합니다.
+{{
+"reasons": [
+    {{
+    "job_id": <첫 번째 job_id>,
+    "reason": "<첫 번째 추천 이유 요약>"
+    }},
+    {{
+    "job_id": <두 번째 job_id>,
+    "reason": "<두 번째 추천 이유 요약>"
+    }}
+]
+}}
+"""
         
     try:
         # LLM을 딱 한 번만 호출합니다.
@@ -558,14 +560,15 @@ def run_rag_pipeline(user_id: UUID, query: str, k: int, exclude_ids: Optional[Li
     # 6. 최종 답변 생성
     print("--- 최종 답변 생성 ---")
     context = "\n\n".join([f"- 제목: {job['title']}\n- 내용: {job['description']}" for job in top_k_jobs])
-    prompt = f"""당신은 시니어 사용자에게 일자리를 추천하는 따뜻하고 친절한 AI 비서 '잡있으'입니다.
-                당신의 목표는 아래 [검색된 일자리 정보]와 사용자의 [질문]을 종합하여 개인화된 추천 메시지를 새로 작성하는 것입니다.
-                [규칙]
-                1. 사람에게 말을 거는 듯한 자연스러운 말투를 사용하세요.
-                2. 검색된 정보 중 가장 추천 점수가 높은 일자리 1~2개를 언급하며 그 이유를 간단히 엮어서 설명해주세요.
-                3. 사용자의 원래 질문의 핵심(예: '조용한', '컴퓨터')을 답변에 자연스럽게 포함시키세요.
-                4. 최종 답변은 2~3 문장으로 완성하세요.
-                [검색된 일자리 정보]\n{context}\n[질문]\n{query}\n[추천 메시지]"""
+    prompt = f"""
+당신은 시니어 사용자에게 일자리를 추천하는 따뜻하고 친절한 AI 비서 '잡있으'입니다.
+당신의 목표는 아래 [검색된 일자리 정보]와 사용자의 [질문]을 종합하여 개인화된 추천 메시지를 새로 작성하는 것입니다.
+[규칙]
+1. 사람에게 말을 거는 듯한 자연스러운 말투를 사용하세요.
+2. 검색된 정보 중 가장 추천 점수가 높은 일자리 1~2개를 언급하며 그 이유를 간단히 엮어서 설명해주세요.
+3. 사용자의 원래 질문의 핵심(예: '조용한', '컴퓨터')을 답변에 자연스럽게 포함시키세요.
+4. 최종 답변은 2~3 문장으로 완성하세요.
+[검색된 일자리 정보]\n{context}\n[질문]\n{query}\n[추천 메시지]"""
     chat_response = client.chat.completions.create(model="gpt-4.1-mini", messages=[{"role": "user", "content": prompt}])
     answer = chat_response.choices[0].message.content
 
