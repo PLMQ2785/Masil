@@ -68,7 +68,11 @@ SERVICE_AREAS = ["서울특별시 강동구", "서울특별시 송파구", "서�
 SERVICE_AREA_KEYWORDS = ["강동", "송파", "강남"] 
 
 def run_rag_pipeline(user_id: UUID, query: str, k: int, exclude_ids: Optional[List[int]] = None, current_latitude: Optional[float] = None, current_longitude: Optional[float] = None) -> dict:
-
+    
+    # --- 토큰 사용량 추적을 위한 변수 초기화 ---
+    total_prompt_tokens = 0
+    total_completion_tokens = 0
+    
     print("RAG 파이프라인 실행")
     # --- 👇 0단계: 사용자 요청에서 지역 추출 및 검사 ---
     try:
@@ -85,6 +89,12 @@ def run_rag_pipeline(user_id: UUID, query: str, k: int, exclude_ids: Optional[Li
             model="gpt-5-nano",
             messages=[{"role": "user", "content": location_extraction_prompt}]
         )
+        
+        usage = location_response.usage
+        print(f"--- [토큰 사용량] 0. 지역 검사: 입력={usage.prompt_tokens}, 출력={usage.completion_tokens} ---")
+        total_prompt_tokens += usage.prompt_tokens
+        total_completion_tokens += usage.completion_tokens
+        
         extracted_location = location_response.choices[0].message.content.strip()
 
         print(f"추출된 지역명: {extracted_location}")
@@ -172,6 +182,12 @@ def run_rag_pipeline(user_id: UUID, query: str, k: int, exclude_ids: Optional[Li
         messages=[{"role": "user", "content": rewrite_prompt}],
     )
     
+    # --- 토큰 로깅 ---
+    usage = rewrite_response.usage
+    print(f"--- [토큰 사용량] 1. 쿼리 재작성: 입력={usage.prompt_tokens}, 출력={usage.completion_tokens} ---")
+    total_prompt_tokens += usage.prompt_tokens
+    total_completion_tokens += usage.completion_tokens
+    
     rewritten_query = rewrite_response.choices[0].message.content.strip()
     print(f"--- 쿼리 재작성 완료 ---\n원본: {query}\n재작성: {rewritten_query}\n-------------------------")
     query = rewritten_query  # 재작성된 쿼리로 업데이트
@@ -245,10 +261,16 @@ def run_rag_pipeline(user_id: UUID, query: str, k: int, exclude_ids: Optional[Li
         input=[composite_text_for_embedding], # 👈 query 대신 composite_text_for_embedding 사용
         model="text-embedding-3-small"
     )
+    
+    # --- 토큰 로깅 ---
+    usage = embedding_response.usage
+    print(f"--- [토큰 사용량] 2. 쿼리 임베딩: 입력={usage.prompt_tokens} ---")
+    total_prompt_tokens += usage.prompt_tokens # 임베딩은 출력 토큰이 없습니다.
+    
     query_embedding = embedding_response.data[0].embedding
 
     # 3. 후보군 검색 (Retrieval)
-    candidates_response = supabase.rpc('match_jobs', {'query_embedding': query_embedding, 'match_threshold': 0.3, 'match_count': 150}).execute()
+    candidates_response = supabase.rpc('match_jobs', {'query_embedding': query_embedding, 'match_threshold': 0.42, 'match_count': 150}).execute()
     retrieved_jobs = candidates_response.data
 
 
@@ -390,6 +412,12 @@ def run_rag_pipeline(user_id: UUID, query: str, k: int, exclude_ids: Optional[Li
                         messages=[{"role": "user", "content": scoring_prompt}],
                         response_format={"type": "json_object"}
                     )
+                    
+                    # --- 토큰 로깅 (Chunk 별) ---
+                    usage = scoring_response.usage
+                    print(f"--- [토큰 사용량] 4. 점수 계산 (Chunk {i//chunk_size + 1}): 입력={usage.prompt_tokens}, 출력={usage.completion_tokens} ---")
+                    total_prompt_tokens += usage.prompt_tokens
+                    total_completion_tokens += usage.completion_tokens
                     
                     scoring_result = json.loads(scoring_response.choices[0].message.content)
 
@@ -544,6 +572,12 @@ def run_rag_pipeline(user_id: UUID, query: str, k: int, exclude_ids: Optional[Li
             response_format={"type": "json_object"}
         )
         
+        # --- 토큰 로깅 ---
+        usage = reason_response.usage
+        print(f"--- [토큰 사용량] 5. 이유 생성: 입력={usage.prompt_tokens}, 출력={usage.completion_tokens} ---")
+        total_prompt_tokens += usage.prompt_tokens
+        total_completion_tokens += usage.completion_tokens
+        
         reason_result = json.loads(reason_response.choices[0].message.content)
         reason_map = {item['job_id']: item['reason'] for item in reason_result.get('reasons', [])}
 
@@ -570,8 +604,22 @@ def run_rag_pipeline(user_id: UUID, query: str, k: int, exclude_ids: Optional[Li
 4. 최종 답변은 2~3 문장으로 완성하세요.
 [검색된 일자리 정보]\n{context}\n[질문]\n{query}\n[추천 메시지]"""
     chat_response = client.chat.completions.create(model="gpt-4.1-mini", messages=[{"role": "user", "content": prompt}])
+    
+    # --- 토큰 로깅 ---
+    usage = chat_response.usage
+    print(f"--- [토큰 사용량] 6. 최종 답변 생성: 입력={usage.prompt_tokens}, 출력={usage.completion_tokens} ---")
+    total_prompt_tokens += usage.prompt_tokens
+    total_completion_tokens += usage.completion_tokens
+    
     answer = chat_response.choices[0].message.content
-
+    
+    
+    # --- 최종 토큰 사용량 요약 ---
+    print("\n==================== 총 토큰 사용량 ====================")
+    print(f"  - 총 입력(Prompt) 토큰: {total_prompt_tokens}")
+    print(f"  - 총 출력(Completion) 토큰: {total_completion_tokens}")
+    print("======================================================\n")
+    
     return {"answer": answer, "jobs": top_k_jobs}
 
 
